@@ -258,8 +258,8 @@ describe "Simple Dataset operations" do
     @ds.filter(false).select_map(:number).must_equal []
     @ds.filter({:id=>1}=>true).select_map(:number).must_equal [10]
     @ds.filter({:id=>1}=>false).select_map(:number).must_equal []
-    @d.literal(true)
-    @d.literal(false)
+    @ds.literal(true)
+    @ds.literal(false)
   end
 end
 
@@ -275,6 +275,22 @@ describe Sequel::Dataset do
   after(:all) do
     DB.drop_table?(:test)
   end
+
+  it "should correctly return avg" do
+    @d.avg(:value).to_i.must_equal 456
+  end 
+  
+  it "should correctly return sum" do
+    @d.sum(:value).to_i.must_equal 1368
+  end 
+  
+  it "should correctly return max" do
+    @d.max(:value).to_i.must_equal 789 
+  end 
+  
+  it "should correctly return min" do
+    @d.min(:value).to_i.must_equal 123 
+  end 
 
   it "should return the correct record count" do
     @d.count.must_equal 3
@@ -334,38 +350,6 @@ describe Sequel::Database do
 end
 
 __END__
-describe Sequel::Dataset do
-  before do
-    DB.create_table! :items do
-      primary_key :id 
-      Integer :value
-    end 
-    @d = DB[:items]
-    @d << {:value => 123}
-    @d << {:value => 456}
-    @d << {:value => 789}
-  end 
-  after do
-    DB.drop_table?(:items)
-  end 
-  
-  it "should correctly return avg" do
-    @d.avg(:value).to_i.must_equal 456
-  end 
-  
-  it "should correctly return sum" do
-    @d.sum(:value).to_i.must_equal 1368
-  end 
-  
-  it "should correctly return max" do
-    @d.max(:value).to_i.must_equal 789 
-  end 
-  
-  it "should correctly return min" do
-    @d.min(:value).to_i.must_equal 123 
-  end 
-end
-
 describe "Simple Dataset operations" do
   before do
     DB.create_table!(:items) do
