@@ -106,7 +106,6 @@ describe "Simple Dataset operations" do
     @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 1).all.must_equal []
     @db.drop_table(:items2)
   end
-  
 end
 
 describe "Simple Dataset operations" do
@@ -260,35 +259,8 @@ describe "Simple Dataset operations" do
     @ds.filter({:id=>1}=>false).select_map(:number).must_equal []
   end
 end
+
 __END__
-
-describe "Simple dataset operations with nasty table names" do
-  before do
-    @db = DB
-    @table = :"i`t' [e]\"m\\s" 
-    @qi = @db.quote_identifiers?
-    @db.quote_identifiers = true
-  end
-  after do
-    @db.quote_identifiers = @qi
-  end
-
-  it "should work correctly" do
-    @db.create_table!(@table) do
-      primary_key :id
-      Integer :number
-    end
-    @ds = @db[@table]
-    @ds.insert(:number=>10).must_equal 1
-    @ds.all.must_equal [{:id=>1, :number=>10}]
-    @ds.update(:number=>20).must_equal 1 
-    @ds.all.must_equal [{:id=>1, :number=>20}]
-    @ds.delete.must_equal 1
-    @ds.count.must_equal 0
-    @db.drop_table?(@table)
-  end 
-end
-
 describe Sequel::Dataset do
   before do
     DB.create_table!(:test) do

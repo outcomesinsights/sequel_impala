@@ -42,7 +42,6 @@ module Sequel
       extend Invalid
 
       BACKTICK = '`'.freeze
-      DOUBLE_BACKTICK = '``'.freeze
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
 
@@ -81,7 +80,7 @@ module Sequel
       end
 
       def quoted_identifier_append(sql, name)
-        sql << BACKTICK<< name.to_s.gsub(BACKTICK, DOUBLE_BACKTICK) << BACKTICK
+        sql << BACKTICK << name.to_s << BACKTICK
       end
     end
   end
