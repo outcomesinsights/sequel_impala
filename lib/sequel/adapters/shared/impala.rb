@@ -43,12 +43,42 @@ module Sequel
 
       BACKTICK = '`'.freeze
       DOUBLE_BACKTICK = '``'.freeze
+      BOOL_TRUE = 'true'.freeze
+      BOOL_FALSE = 'false'.freeze
 
       invalid :update, "Impala does not support UPDATE"
       invalid :delete, "Impala does not support DELETE"
       invalid :truncate, "Impala does not support TRUNCATE or DELETE"
 
+      def supports_cte?(type=:select)
+        true
+      end
+      
+      def supports_derived_column_lists?
+        false
+      end
+
+      def insert_supports_empty_values?
+        false
+      end
+
+      def supports_is_true?
+        false
+      end
+    
       private
+
+      def insert_empty_columns_values
+        [[columns.last], [nil]]
+      end
+    
+      def literal_true
+        BOOL_TRUE
+      end
+
+      def literal_false
+        BOOL_FALSE
+      end
 
       def quoted_identifier_append(sql, name)
         sql << BACKTICK<< name.to_s.gsub(BACKTICK, DOUBLE_BACKTICK) << BACKTICK

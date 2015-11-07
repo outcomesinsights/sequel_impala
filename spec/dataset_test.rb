@@ -1,77 +1,136 @@
 require File.join(File.dirname(File.expand_path(__FILE__)), 'spec_helper.rb')
 
 describe "Simple Dataset operations" do
-  before do
+  before(:all) do
     @db = DB
-    @db.create_table!(:items) do
-      primary_key :id
-      Integer :number
-    end
     @ds = @db[:items]
-    @ds.insert(:number=>10)
   end
   after do
     @db.drop_table?(:items)
   end
-
-  it "should support sequential primary keys" do
-    @ds << {:number=>20}
-    @ds << {:number=>30}
-    @ds.order(:number).all.must_equal [
-      {:id => 1, :number=>10},
-      {:id => 2, :number=>20},
-      {:id => 3, :number=>30} ]   
-  end 
 
   it "should support sequential primary keys with a Bignum" do
     @db.create_table!(:items) do
       primary_key :id, :type=>Bignum
       Integer :number
     end
-    @ds << {:number=>20}
-    @ds << {:number=>30}
+    @ds << {:id=>1, :number=>20}
+    @ds << {:id=>2, :number=>30}
     @ds.order(:number).all.must_equal [{:id => 1, :number=>20}, {:id => 2, :number=>30}]   
   end 
 
-  it "should insert with a primary key specified" do
-    @ds.insert(:id=>100, :number=>20)
-    @ds.count.must_equal 2
-    @ds.order(:id).all.must_equal [{:id=>1, :number=>10}, {:id=>100, :number=>20}]
-  end
-
-  it "should have insert return primary key value" do
-    @ds.insert(:number=>20).must_equal 2
-    @ds.filter(:id=>2).first[:number].must_equal 20
-  end
-
   it "should have insert work correctly with static SQL" do
-    @db["INSERT INTO #{@ds.literal(:items)} (#{@ds.literal(:number)}) VALUES (20)"].insert
-    @ds.filter(:id=>2).first[:number].must_equal 20
+    @db.create_table!(:items) do
+      primary_key :id
+      Integer :number
+    end
+    @db["INSERT INTO #{@ds.literal(:items)} (id, number) VALUES (2, 30)"].insert
+    @ds.all.must_equal [{:id => 2, :number=>30}]   
   end
 
-  it "should have insert_multiple return primary key values" do
-    @ds.extension(:sequel_3_dataset_methods).insert_multiple([{:number=>20}, {:number=>30}]).must_equal [2, 3]
-    @ds.filter(:id=>2).get(:number).must_equal 20
-    @ds.filter(:id=>3).get(:number).must_equal 30
+  it "should have insert work correctly when inserting a row with all NULL values" do
+    @db.create_table!(:items) do
+      Integer :id
+      Integer :number
+    end
+    @ds.insert
+    @ds.all.must_equal [{:id=>nil, :number=>nil}]
+  end
+
+  it "should support iterating over large numbers of records with paged_each" do
+    @db.create_table!(:items) do
+      Integer :id
+      Integer :number
+    end
+    @ds.import([:id, :number], (1..10).map{|i| [i, i*10]})
+
+    [:offset, :filter].each do |strategy|
+      rows = []
+      @ds.order(:number).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
+      rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
+
+      rows = []
+      @ds.order(:number).paged_each(:rows_per_fetch=>3, :strategy=>strategy){|row| rows << row}
+      rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
+
+      rows = []
+      @ds.order(:number, :id).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
+      rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
+
+      rows = []
+      @ds.reverse_order(:number).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
+      rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}}.reverse)
+
+      rows = []
+      @ds.order(Sequel.desc(:number), :id).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
+      rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}}.reverse)
+    end
+
+    rows = []
+    @ds.order(:number).limit(5, 2).paged_each(:rows_per_fetch=>3){|row| rows << row}
+    rows.must_equal((3..7).map{|i| {:id=>i, :number=>i*10}})
+
+    rows = []
+    @ds.order(Sequel.*(:number, 2)).paged_each(:rows_per_fetch=>5){|row| rows << row}
+    rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
+
+    rows = []
+    @ds.order(Sequel.*(:number, 2)).paged_each(:rows_per_fetch=>5, :strategy=>:filter, :filter_values=>proc{|row, _| [row[:number] * 2]}){|row| rows << row}
+    rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
+
+    # check retrival with varying fetch sizes
+    array = (1..10).to_a
+    [1, 2, 5, 10, 20].each do |i|
+      @ds.with_fetch_size(i).select_order_map(:id).must_equal array
+    end
+  end
+
+  it "should fetch correctly with a limit and offset for different combinations of from and join tables" do
+    @db.create_table!(:items) do
+      Integer :id
+      Integer :number
+    end
+    @ds.insert(:id=>1, :number=>10)
+    @db.create_table!(:items2){primary_key :id2; Integer :number2}
+    @db[:items2].insert(:id2=>1, :number2=>10)
+    @ds.from(:items, :items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.cross_join(:items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10, :id3=>1, :number3=>10}]
+
+    @ds.from(:items, :items2).order(:id).limit(2, 1).all.must_equal []
+    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 1).all.must_equal []
+    @ds.cross_join(:items2).order(:id).limit(2, 1).all.must_equal []
+    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 1).all.must_equal []
+    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 1).all.must_equal []
+    @db.drop_table(:items2)
+  end
+  
+end
+
+describe "Simple Dataset operations" do
+  before(:all) do
+    @db = DB
+    @db.create_table!(:items) do
+      primary_key :id
+      Integer :number
+    end
+    @ds = @db[:items]
+    @ds.insert(:id=>1, :number=>10)
+  end
+  after(:all) do
+    @db.drop_table?(:items)
   end
 
   it "should join correctly" do
     @ds.join(:items___b, :id=>:id).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
+    @ds.join(:items___b, [:id]).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
   end
 
-  it "should handle LATERAL subqueries correctly" do
-    @ds << {:number=>20}
-    @ds.from(:items___i, @ds.where(:items__number=>:i__number).lateral).select_order_map([:i__number___n, :t1__number]).must_equal [[10, 10], [20, 20]]
-    @ds.from(:items___i).cross_join(@ds.where(:items__number=>:i__number).lateral).select_order_map([:i__number___n, :t1__number]).must_equal [[10, 10], [20, 20]]
-    @ds.from(:items___i).join(@ds.where(:items__number=>:i__number).lateral, 1=>1).select_order_map([:i__number___n, :t1__number]).must_equal [[10, 10], [20, 20]]
-    @ds.from(:items___i).join(@ds.where(:items__number=>:i__number).lateral, 1=>0).select_order_map([:i__number___n, :t1__number]).must_equal []
-    @ds.from(:items___i).left_join(@ds.from(:items___i2).where(:i2__number=>:i__number).lateral, 1=>1).select_order_map([:i__number___n, :t1__number]).must_equal [[10, 10], [20, 20]]
-    @ds.from(:items___i).left_join(@ds.from(:items___i2).where(:i2__number=>:i__number).lateral, 1=>0).select_order_map([:i__number___n, :t1__number]).must_equal [[10, nil], [20, nil]]
-  end if DB.dataset.supports_lateral_subqueries?
-
-  it "should correctly deal with qualified columns and subselects" do
-    @ds.from_self(:alias=>:a).select(:a__id, Sequel.qualify(:a, :number)).all.must_equal [{:id=>1, :number=>10}]
-    @ds.join(@ds.as(:a), :id=>:id).select(:a__id, Sequel.qualify(:a, :number)).all.must_equal [{:id=>1, :number=>10}]
+  it "should correctly handle subqueries" do
+    @ds.from_self(:alias=>:a).all.must_equal [{:id=>1, :number=>10}]
+    @ds.join(@ds.as(:a), :id=>:id).select_all(:a).all.must_equal [{:id=>1, :number=>10}]
   end
 
   it "should graph correctly" do
@@ -89,82 +148,16 @@ describe "Simple Dataset operations" do
     @ds.from_self(:alias=>:items).graph(@ds.from_self, {:id=>:id}, :table_alias=>:b).extension(:graph_each).all.must_equal [{:items=>{:id=>1, :number=>10}, :b=>{:id=>1, :number=>10}}]
   end
 
-  it "should have insert work correctly when inserting a row with all NULL values" do
-    @db.create_table!(:items) do
-      String :name
-      Integer :number
-    end
-    @ds.insert
-    @ds.all.must_equal [{:name=>nil, :number=>nil}]
-  end
-
-  it "should delete correctly" do
-    @ds.filter(1=>1).delete.must_equal 1
-    @ds.count.must_equal 0
+  it "should raise InvalidOperation for unsupported statements" do
+    proc{@ds.update(:number=>40)}.must_raise Sequel::InvalidOperation
+    proc{@ds.delete}.must_raise Sequel::InvalidOperation
+    proc{@ds.truncate}.must_raise Sequel::InvalidOperation
   end
   
-  it "should update correctly" do
-    @ds.update(:number=>Sequel.expr(:number)+1).must_equal 1
-    @ds.all.must_equal [{:id=>1, :number=>11}]
-  end
-  
-  it "should have update return the number of matched rows" do
-    @ds.update(:number=>:number).must_equal 1
-    @ds.filter(:id=>1).update(:number=>:number).must_equal 1
-    @ds.filter(:id=>2).update(:number=>:number).must_equal 0
-    @ds.all.must_equal [{:id=>1, :number=>10}]
-  end
-
   it "should iterate over records as they come in" do
     called = false
     @ds.each{|row| called = true; row.must_equal(:id=>1, :number=>10)}
     called.must_equal true
-  end
-
-  it "should support iterating over large numbers of records with paged_each" do
-    (2..100).each{|i| @ds.insert(:number=>i*10)}
-
-    [:offset, :filter].each do |strategy|
-      rows = []
-      @ds.order(:number).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
-      rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}})
-
-      rows = []
-      @ds.order(:number).paged_each(:rows_per_fetch=>3, :strategy=>strategy){|row| rows << row}
-      rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}})
-
-      rows = []
-      @ds.order(:number, :id).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
-      rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}})
-
-      rows = []
-      @ds.reverse_order(:number).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
-      rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}}.reverse)
-
-      rows = []
-      @ds.order(Sequel.desc(:number), :id).paged_each(:rows_per_fetch=>5, :strategy=>strategy){|row| rows << row}
-      rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}}.reverse)
-    end
-
-    rows = []
-    @ds.order(:number).limit(50, 25).paged_each(:rows_per_fetch=>3){|row| rows << row}
-    rows.must_equal((26..75).map{|i| {:id=>i, :number=>i*10}})
-
-    rows = []
-    @ds.order(Sequel.*(:number, 2)).paged_each(:rows_per_fetch=>5){|row| rows << row}
-    rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}})
-
-    rows = []
-    @ds.order(Sequel.*(:number, 2)).paged_each(:rows_per_fetch=>5, :strategy=>:filter, :filter_values=>proc{|row, _| [row[:number] * 2]}){|row| rows << row}
-    rows.must_equal((1..100).map{|i| {:id=>i, :number=>i*10}})
-
-    if DB.adapter_scheme == :jdbc
-      # check retrival with varying fetch sizes
-      array = (1..100).to_a
-      [1, 2, 5, 10, 33, 50, 100, 1000].each do |i|
-        @ds.with_fetch_size(i).select_order_map(:id).must_equal array
-      end
-    end
   end
 
   it "should fetch all results correctly" do
@@ -178,9 +171,8 @@ describe "Simple Dataset operations" do
   end
   
   it "should work correctly when returning from each without iterating over the whole result set" do
-    @ds.insert(:number=>20)
     @ds.order(:id).each{|v| break v}.must_equal(:id=>1, :number=>10)
-    @ds.reverse(:id).each{|v| break v}.must_equal(:id=>2, :number=>20)
+    @ds.reverse(:id).each{|v| break v}.must_equal(:id=>1, :number=>10)
   end
   
   it "should fetch a single value correctly" do
@@ -194,37 +186,22 @@ describe "Simple Dataset operations" do
   end
   
   it "should fetch correctly with a limit" do
-    @ds.order(:id).limit(2).all.must_equal [{:id=>1, :number=>10}]
-    @ds.insert(:number=>20)
     @ds.order(:id).limit(1).all.must_equal [{:id=>1, :number=>10}]
-    @ds.order(:id).limit(2).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
   end
   
   it "should fetch correctly with a limit and offset" do
-    @ds.order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10}]
-    @ds.order(:id).limit(2, 1).all.must_equal []
-    @ds.insert(:number=>20)
-    @ds.order(:id).limit(1, 1).all.must_equal [{:id=>2, :number=>20}]
-    @ds.order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
-    @ds.order(:id).limit(2, 1).all.must_equal [{:id=>2, :number=>20}]
+    @ds.order(:id).limit(1, 0).all.must_equal [{:id=>1, :number=>10}]
+    @ds.order(:id).limit(1, 1).all.must_equal []
   end
 
   it "should fetch correctly with just offset" do
     @ds.order(:id).offset(0).all.must_equal [{:id=>1, :number=>10}]
     @ds.order(:id).offset(1).all.must_equal []
-    @ds.insert(:number=>20)
-    @ds.order(:id).offset(0).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
-    @ds.order(:id).offset(1).all.must_equal [{:id=>2, :number=>20}]
-    @ds.order(:id).offset(2).all.must_equal []
   end
 
   it "should fetch correctly with a limit and offset using seperate methods" do
-    @ds.order(:id).limit(2).offset(0).all.must_equal [{:id=>1, :number=>10}]
-    @ds.order(:id).limit(2).offset(1).all.must_equal []
-    @ds.insert(:number=>20)
-    @ds.order(:id).limit(1).offset(1).all.must_equal [{:id=>2, :number=>20}]
-    @ds.order(:id).limit(2).offset(0).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
-    @ds.order(:id).limit(2).offset(1).all.must_equal [{:id=>2, :number=>20}]
+    @ds.order(:id).limit(1).offset(0).all.must_equal [{:id=>1, :number=>10}]
+    @ds.order(:id).limit(1).offset(1).all.must_equal []
   end
   
   it "should provide correct columns when using a limit and offset" do
@@ -234,94 +211,56 @@ describe "Simple Dataset operations" do
     @ds.order(:id).limit(1, 1).columns.must_equal [:id, :number]
   end
 
-  it "should fetch correctly with a limit and offset for different combinations of from and join tables" do
-    @db.create_table!(:items2){primary_key :id2; Integer :number2}
-    @db[:items2].insert(:number2=>10)
-    @ds.from(:items, :items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.cross_join(:items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10, :id3=>1, :number3=>10}]
-
-    @ds.from(:items, :items2).order(:id).limit(2, 1).all.must_equal []
-    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 1).all.must_equal []
-    @ds.cross_join(:items2).order(:id).limit(2, 1).all.must_equal []
-    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 1).all.must_equal []
-    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 1).all.must_equal []
-    @db.drop_table(:items2)
-  end
-  
   it "should fetch correctly with a limit and offset without an order" do
-    @ds.limit(2, 1).all.must_equal []
-    @ds.join(:items___i, :id=>:id).select(:items__id___s, :i__id___id2).limit(2, 1).all.must_equal []
-    @ds.join(:items___i, :id=>:id).select(:items__id).limit(2, 1).all.must_equal []
-    @ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id)).limit(2, 1).all.must_equal []
-    @ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id).as(:s)).limit(2, 1).all.must_equal []
+    ds = @ds.order(1)
+    ds.limit(2, 1).all.must_equal []
+    ds.join(:items___i, :id=>:id).select(:items__id___s, :i__id___id2).limit(2, 1).all.must_equal []
+    ds.join(:items___i, :id=>:id).select(:items__id).limit(2, 1).all.must_equal []
+    ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id)).limit(2, 1).all.must_equal []
+    ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id).as(:s)).limit(2, 1).all.must_equal []
   end
 
   it "should be orderable by column number" do
-    @ds.insert(:number=>20)
-    @ds.insert(:number=>10)
-    @ds.order(2, 1).select_map([:id, :number]).must_equal [[1, 10], [3, 10], [2, 20]]
+    @ds.order(2, 1).select_map([:id, :number]).must_equal [[1, 10]]
   end
 
   it "should fetch correctly with a limit in an IN subselect" do
-    @ds.where(:id=>@ds.select(:id).order(:id).limit(2)).all.must_equal [{:id=>1, :number=>10}]
-    @ds.insert(:number=>20)
     @ds.where(:id=>@ds.select(:id).order(:id).limit(1)).all.must_equal [{:id=>1, :number=>10}]
-    @ds.where(:id=>@ds.select(:id).order(:id).limit(2)).order(:id).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
   end
   
   it "should fetch correctly with a limit and offset in an IN subselect" do
     @ds.where(:id=>@ds.select(:id).order(:id).limit(2, 0)).all.must_equal [{:id=>1, :number=>10}]
     @ds.where(:id=>@ds.select(:id).order(:id).limit(2, 1)).all.must_equal []
-    @ds.insert(:number=>20)
-    @ds.where(:id=>@ds.select(:id).order(:id).limit(1, 1)).all.must_equal [{:id=>2, :number=>20}]
-    @ds.where(:id=>@ds.select(:id).order(:id).limit(2, 0)).order(:id).all.must_equal [{:id=>1, :number=>10}, {:id=>2, :number=>20}]
-    @ds.where(:id=>@ds.select(:id).order(:id).limit(2, 1)).all.must_equal [{:id=>2, :number=>20}]
   end
   
   it "should fetch correctly when using limit and offset in a from_self" do
-    @ds.insert(:number=>20)
     ds = @ds.order(:id).limit(1, 1).from_self
-    ds.all.must_equal [{:number=>20, :id=>2}]
+    ds.all.must_equal []
     ds.columns.must_equal [:id, :number]
     @ds.order(:id).limit(1, 1).columns.must_equal [:id, :number]
   end
 
   it "should fetch correctly when using nested limit and offset in a from_self" do
-    @ds.insert(:number=>20)
-    @ds.insert(:number=>30)
-    ds = @ds.order(:id).limit(2, 1).from_self.reverse_order(:number).limit(1, 1)
-    ds.all.must_equal [{:number=>20, :id=>2}]
+    ds = @ds.order(:id).limit(1, 0).from_self.reverse_order(:number).limit(1, 0)
+    ds.all.must_equal [{:number=>10, :id=>1}]
     ds.columns.must_equal [:id, :number]
-    @ds.order(:id).limit(2, 1).from_self.reverse_order(:number).limit(1, 1).columns.must_equal [:id, :number]
-
-    ds = @ds.order(:id).limit(3, 1).from_self.limit(2, 1).from_self.limit(1, 1)
-    ds.all.must_equal []
-    ds.columns.must_equal [:id, :number]
-
-    @ds.insert(:number=>40)
-    ds = @ds.order(:id).limit(3, 1).from_self.reverse_order(:number).limit(2, 1).from_self.reverse_order(:id).limit(1, 1)
-    ds.all.must_equal [{:number=>20, :id=>2}]
-    ds.columns.must_equal [:id, :number]
+    @ds.order(:id).limit(1, 0).from_self.reverse_order(:number).limit(1, 0).columns.must_equal [:id, :number]
   end
 
   it "should alias columns correctly" do
     @ds.select(:id___x, :number___n).first.must_equal(:x=>1, :n=>10)
   end
 
-  it "should support table aliases with column aliases" do
-    DB.from(@ds.as(:i, [:x, :n])).first.must_equal(:x=>1, :n=>10)
-  end if DB.dataset.supports_derived_column_lists?
-
   it "should handle true/false properly" do
     @ds.filter(Sequel::TRUE).select_map(:number).must_equal [10]
     @ds.filter(Sequel::FALSE).select_map(:number).must_equal []
     @ds.filter(true).select_map(:number).must_equal [10]
     @ds.filter(false).select_map(:number).must_equal []
+    @ds.filter({:id=>1}=>true).select_map(:number).must_equal [10]
+    @ds.filter({:id=>1}=>false).select_map(:number).must_equal []
   end
 end
+__END__
 
 describe "Simple dataset operations with nasty table names" do
   before do
