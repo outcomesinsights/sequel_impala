@@ -1059,24 +1059,16 @@ describe "SQL Extract Function" do
   end
 end
 
-__END__
 describe "Dataset string methods" do
-  before(:all) do
+  before do
     @db = DB
-    csc = {}
-    cic = {}
-    csc[:collate] = @db.dataset_class::CASE_SENSITIVE_COLLATION if defined? @db.dataset_class::CASE_SENSITIVE_COLLATION
-    cic[:collate] = @db.dataset_class::CASE_INSENSITIVE_COLLATION if defined? @db.dataset_class::CASE_INSENSITIVE_COLLATION
     @db.create_table!(:a) do
-      String :a, csc
-      String :b, cic
+      String :a
+      String :b
     end
     @ds = @db[:a].order(:a)
   end
-  before do
-    @ds.delete
-  end
-  after(:all) do
+  after do
     @db.drop_table?(:a)
   end
   
@@ -1139,71 +1131,41 @@ describe "Dataset string methods" do
     @ds.exclude(Sequel.expr(:a).ilike('FOO', 'BAR')).all.must_equal []
   end
   
-  it "#escape_like should escape any metacharacters" do
+  it "#like with regexp return matching rows" do
     @ds.insert('foo', 'bar')
-    @ds.insert('foo.', 'bar..')
-    @ds.insert('foo\\..', 'bar\\..')
-    @ds.insert('foo\\_', 'bar\\%')
-    @ds.insert('foo_', 'bar%')
-    @ds.insert('foo_.', 'bar%.')
-    @ds.insert('foo_..', 'bar%..')
-    @ds.insert('[f#*?oo_]', '[bar%]')
-    @ds.filter(Sequel.expr(:a).like(@ds.escape_like('foo_'))).select_order_map(:a).must_equal ['foo_']
-    @ds.filter(Sequel.expr(:b).like(@ds.escape_like('bar%'))).select_order_map(:b).must_equal ['bar%']
-    @ds.filter(Sequel.expr(:a).like(@ds.escape_like('foo\\_'))).select_order_map(:a).must_equal ['foo\\_']
-    @ds.filter(Sequel.expr(:b).like(@ds.escape_like('bar\\%'))).select_order_map(:b).must_equal ['bar\\%']
-    @ds.filter(Sequel.expr(:a).like(@ds.escape_like('[f#*?oo_]'))).select_order_map(:a).must_equal ['[f#*?oo_]']
-    @ds.filter(Sequel.expr(:b).like(@ds.escape_like('[bar%]'))).select_order_map(:b).must_equal ['[bar%]']
-    @ds.filter(Sequel.expr(:b).like("#{@ds.escape_like('bar%')}_")).select_order_map(:b).must_equal ['bar%.']
-    @ds.filter(Sequel.expr(:b).like("#{@ds.escape_like('bar%')}%")).select_order_map(:b).must_equal ['bar%', 'bar%.', 'bar%..']
-
-    @ds.filter(Sequel.expr(:a).ilike(@ds.escape_like('Foo_'))).select_order_map(:a).must_equal ['foo_']
-    @ds.filter(Sequel.expr(:b).ilike(@ds.escape_like('Bar%'))).select_order_map(:b).must_equal ['bar%']
-    @ds.filter(Sequel.expr(:a).ilike(@ds.escape_like('Foo\\_'))).select_order_map(:a).must_equal ['foo\\_']
-    @ds.filter(Sequel.expr(:b).ilike(@ds.escape_like('Bar\\%'))).select_order_map(:b).must_equal ['bar\\%']
-    @ds.filter(Sequel.expr(:a).ilike(@ds.escape_like('[F#*?oo_]'))).select_order_map(:a).must_equal ['[f#*?oo_]']
-    @ds.filter(Sequel.expr(:b).ilike(@ds.escape_like('[Bar%]'))).select_order_map(:b).must_equal ['[bar%]']
-    @ds.filter(Sequel.expr(:b).ilike("#{@ds.escape_like('Bar%')}_")).select_order_map(:b).must_equal ['bar%.']
-    @ds.filter(Sequel.expr(:b).ilike("#{@ds.escape_like('Bar%')}%")).select_order_map(:b).must_equal ['bar%', 'bar%.', 'bar%..']
+    @ds.filter(Sequel.expr(:a).like(/fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.filter(Sequel.expr(:a).like(/fo$/)).all.must_equal []
+    @ds.filter(Sequel.expr(:a).like(/fo/, /ar/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:a).like(/fo/)).all.must_equal []
+    @ds.exclude(Sequel.expr(:a).like(/fo$/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:a).like(/fo/, /ar/)).all.must_equal []
   end
   
-  if DB.dataset.supports_regexp?
-    it "#like with regexp return matching rows" do
-      @ds.insert('foo', 'bar')
-      @ds.filter(Sequel.expr(:a).like(/fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.filter(Sequel.expr(:a).like(/fo$/)).all.must_equal []
-      @ds.filter(Sequel.expr(:a).like(/fo/, /ar/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:a).like(/fo/)).all.must_equal []
-      @ds.exclude(Sequel.expr(:a).like(/fo$/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:a).like(/fo/, /ar/)).all.must_equal []
-    end
-    
-    it "#like with regexp should be case sensitive if regexp is case sensitive" do
-      @ds.insert('foo', 'bar')
-      @ds.filter(Sequel.expr(:a).like(/Fo/)).all.must_equal []
-      @ds.filter(Sequel.expr(:b).like(/baR/)).all.must_equal []
-      @ds.filter(Sequel.expr(:a).like(/FOO/, /BAR/)).all.must_equal []
-      @ds.exclude(Sequel.expr(:a).like(/Fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:b).like(/baR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:a).like(/FOO/, /BAR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+  it "#like with regexp should be case sensitive if regexp is case sensitive" do
+    @ds.insert('foo', 'bar')
+    @ds.filter(Sequel.expr(:a).like(/Fo/)).all.must_equal []
+    @ds.filter(Sequel.expr(:b).like(/baR/)).all.must_equal []
+    @ds.filter(Sequel.expr(:a).like(/FOO/, /BAR/)).all.must_equal []
+    @ds.exclude(Sequel.expr(:a).like(/Fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:b).like(/baR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:a).like(/FOO/, /BAR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
 
-      @ds.filter(Sequel.expr(:a).like(/Fo/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.filter(Sequel.expr(:b).like(/baR/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.filter(Sequel.expr(:a).like(/FOO/i, /BAR/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:a).like(/Fo/i)).all.must_equal []
-      @ds.exclude(Sequel.expr(:b).like(/baR/i)).all.must_equal []
-      @ds.exclude(Sequel.expr(:a).like(/FOO/i, /BAR/i)).all.must_equal []
-    end
-    
-    it "#ilike with regexp should return matching rows, in a case insensitive manner" do
-      @ds.insert('foo', 'bar')
-      @ds.filter(Sequel.expr(:a).ilike(/Fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.filter(Sequel.expr(:b).ilike(/baR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.filter(Sequel.expr(:a).ilike(/FOO/, /BAR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
-      @ds.exclude(Sequel.expr(:a).ilike(/Fo/)).all.must_equal []
-      @ds.exclude(Sequel.expr(:b).ilike(/baR/)).all.must_equal []
-      @ds.exclude(Sequel.expr(:a).ilike(/FOO/, /BAR/)).all.must_equal []
-    end
+    @ds.filter(Sequel.expr(:a).like(/Fo/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.filter(Sequel.expr(:b).like(/baR/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.filter(Sequel.expr(:a).like(/FOO/i, /BAR/i)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:a).like(/Fo/i)).all.must_equal []
+    @ds.exclude(Sequel.expr(:b).like(/baR/i)).all.must_equal []
+    @ds.exclude(Sequel.expr(:a).like(/FOO/i, /BAR/i)).all.must_equal []
+  end
+  
+  it "#ilike with regexp should return matching rows, in a case insensitive manner" do
+    @ds.insert('foo', 'bar')
+    @ds.filter(Sequel.expr(:a).ilike(/Fo/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.filter(Sequel.expr(:b).ilike(/baR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.filter(Sequel.expr(:a).ilike(/FOO/, /BAR/)).all.must_equal [{:a=>'foo', :b=>'bar'}]
+    @ds.exclude(Sequel.expr(:a).ilike(/Fo/)).all.must_equal []
+    @ds.exclude(Sequel.expr(:b).ilike(/baR/)).all.must_equal []
+    @ds.exclude(Sequel.expr(:a).ilike(/FOO/, /BAR/)).all.must_equal []
   end
   
   it "should work with strings created with Sequel.join" do
@@ -1213,6 +1175,7 @@ describe "Dataset string methods" do
   end
 end
 
+__END__
 describe "Dataset identifier methods" do
   before(:all) do
     class ::String

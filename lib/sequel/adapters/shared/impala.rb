@@ -54,6 +54,11 @@ module Sequel
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
       CONSTANT_LITERAL_MAP = {:CURRENT_TIMESTAMP=>'now()'.freeze}.freeze
+      PAREN_OPEN = Dataset::PAREN_OPEN
+      PAREN_CLOSE = Dataset::PAREN_CLOSE
+      SPACE = Dataset::SPACE
+      NOT = 'NOT '.freeze
+      REGEXP = ' REGEXP '.freeze
 
       invalid :update, "Impala does not support UPDATE"
       invalid :delete, "Impala does not support DELETE"
@@ -63,6 +68,22 @@ module Sequel
         case op
         when :'||'
           literal_append(sql, Sequel.function(:concat, *args))
+        when :LIKE, :'NOT LIKE'
+          sql << PAREN_OPEN
+          literal_append(sql, args.at(0))
+          sql << SPACE << op.to_s << SPACE
+          literal_append(sql, args.at(1))
+          sql << PAREN_CLOSE
+        when :~, :'!~', :'~*', :'!~*'
+          if op == :'~*'  || op == :'!~*'
+            args = args.map{|a| Sequel.function(:upper, a)}
+          end
+          sql << NOT if op == :'!~'  || op == :'!~*'
+          sql << PAREN_OPEN
+          literal_append(sql, args.at(0))
+          sql << REGEXP
+          literal_append(sql, args.at(1))
+          sql << PAREN_CLOSE
         else
           super
         end
@@ -98,6 +119,10 @@ module Sequel
     
       def supports_multiple_column_in?
         false
+      end
+
+      def supports_regexp?
+        true
       end
 
       def supports_window_functions?
