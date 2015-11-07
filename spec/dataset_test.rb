@@ -375,68 +375,34 @@ describe "Simple Dataset operations" do
   end
 end
 
-__END__
-describe "Simple Dataset operations in transactions" do
-  before do
-    DB.create_table!(:items) do
-      primary_key :id
-      integer :number
-    end
-    @ds = DB[:items]
-  end
-  after do
-    DB.drop_table?(:items)
-  end
-
-  it "should insert correctly with a primary key specified inside a transaction" do
-    DB.transaction do
-      @ds.insert(:id=>100, :number=>20)
-      @ds.count.must_equal 1
-      @ds.order(:id).all.must_equal [{:id=>100, :number=>20}]
-    end
-  end
-  
-  it "should have insert return primary key value inside a transaction" do
-    DB.transaction do
-      @ds.insert(:number=>20).must_equal 1
-      @ds.count.must_equal 1
-      @ds.order(:id).all.must_equal [{:id=>1, :number=>20}]
-    end
-  end
-  
-  it "should support for_update" do
-    DB.transaction{@ds.for_update.all.must_equal []}
-  end
-end
-
 describe "Dataset UNION, EXCEPT, and INTERSECT" do
-  before do
+  before(:all) do
     DB.create_table!(:i1){integer :number}
     DB.create_table!(:i2){integer :number}
+    DB.create_table!(:i3){integer :number}
     @ds1 = DB[:i1]
+    @ds1.insert(:number=>8)
     @ds1.insert(:number=>10)
     @ds1.insert(:number=>20)
+    @ds1.insert(:number=>38)
     @ds2 = DB[:i2]
+    @ds2.insert(:number=>9)
     @ds2.insert(:number=>10)
     @ds2.insert(:number=>30)
+    @ds2.insert(:number=>39)
+    @ds3 = DB[:i3]
+    @ds3.insert(:number=>10)
+    @ds3.insert(:number=>40)
   end
-  after do
+  after(:all) do
     DB.drop_table?(:i1, :i2, :i3)
   end
   
-  it "should give the correct results for simple UNION, EXCEPT, and INTERSECT" do
-    @ds1.union(@ds2).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20 30'
-    if @ds1.supports_intersect_except?
-      @ds1.except(@ds2).order(:number).map{|x| x[:number].to_s}.must_equal %w'20'
-      @ds1.intersect(@ds2).order(:number).map{|x| x[:number].to_s}.must_equal %w'10'
-    end
+  it "should give the correct results for simple UNION" do
+    @ds1.union(@ds2).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39'
   end
   
-  it "should give the correct results for UNION, EXCEPT, and INTERSECT when used with ordering and limits" do
-    @ds1.insert(:number=>8)
-    @ds2.insert(:number=>9)
-    @ds1.insert(:number=>38)
-    @ds2.insert(:number=>39)
+  it "should give the correct results for UNION when used with ordering and limits" do
 
     @ds1.reverse_order(:number).union(@ds2).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39'
     @ds1.union(@ds2.reverse_order(:number)).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39'
@@ -454,36 +420,12 @@ describe "Dataset UNION, EXCEPT, and INTERSECT" do
     @ds2.order(:number).limit(2).union(@ds1.order(:number).limit(2)).reverse_order(:number).limit(3).map{|x| x[:number].to_s}.must_equal %w'10 9 8'
   end
 
-  it "should give the correct results for compound UNION, EXCEPT, and INTERSECT" do
-    DB.create_table!(:i3){integer :number}
-    @ds3 = DB[:i3]
-    @ds3.insert(:number=>10)
-    @ds3.insert(:number=>40)
-
-    @ds1.union(@ds2).union(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20 30 40'
-    @ds1.union(@ds2.union(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20 30 40'
-    if @ds1.supports_intersect_except?
-      @ds1.union(@ds2).except(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'20 30'
-      @ds1.union(@ds2.except(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20 30'
-      @ds1.union(@ds2).intersect(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 '
-      @ds1.union(@ds2.intersect(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20'
-      
-      @ds1.except(@ds2).union(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20 40'
-      @ds1.except(@ds2.union(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'20'
-      @ds1.except(@ds2).except(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'20'
-      @ds1.except(@ds2.except(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 20'
-      @ds1.except(@ds2).intersect(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w''
-      @ds1.except(@ds2.intersect(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'20'
-      
-      @ds1.intersect(@ds2).union(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'10 40'
-      @ds1.intersect(@ds2.union(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10'
-      @ds1.intersect(@ds2).except(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w''
-      @ds1.intersect(@ds2.except(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w''
-      @ds1.intersect(@ds2).intersect(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'10'
-      @ds1.intersect(@ds2.intersect(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'10'
-    end
+  it "should give the correct results for compound UNION" do
+    @ds1.union(@ds2).union(@ds3).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39 40'
+    @ds1.union(@ds2.union(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39 40'
   end
 end
+__END__
 
 if DB.dataset.supports_cte?
   describe "Common Table Expressions" do

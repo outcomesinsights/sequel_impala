@@ -70,6 +70,10 @@ module Sequel
         false
       end
 
+      def supports_intersect_except?
+        false
+      end
+
       def supports_is_true?
         false
       end
