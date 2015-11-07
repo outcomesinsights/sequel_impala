@@ -53,10 +53,15 @@ module Sequel
       STRING_ESCAPE_REPLACE = '\\\\\1'.freeze
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
+      CONSTANT_LITERAL_MAP = {:CURRENT_TIMESTAMP=>'now()'.freeze}.freeze
 
       invalid :update, "Impala does not support UPDATE"
       invalid :delete, "Impala does not support DELETE"
       invalid :truncate, "Impala does not support TRUNCATE or DELETE"
+
+      def constant_sql_append(sql, constant)
+        sql << CONSTANT_LITERAL_MAP.fetch(constant, constant.to_s)
+      end
 
       def supports_cte?(type=:select)
         true

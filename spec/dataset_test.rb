@@ -520,7 +520,6 @@ describe "Window Functions" do
   end
 end
 
-__END__
 describe Sequel::SQL::Constants do
   before do
     @db = DB
@@ -541,33 +540,14 @@ describe Sequel::SQL::Constants do
     @db.drop_table?(:constants)
   end
   
-  it "should have working CURRENT_DATE" do
-    @db.create_table!(:constants){Date :d}
-    @ds.insert(:d=>Sequel::CURRENT_DATE)
-    d = @c2[@ds.get(:d)]
-    d.must_be_kind_of(Date)
-    d.to_s.must_equal Date.today.to_s
-  end
-
-  it "should have working CURRENT_TIME" do
-    @db.create_table!(:constants){Time :t, :only_time=>true}
-    @ds.insert(:t=>Sequel::CURRENT_TIME)
-    (Time.now - @c[@ds.get(:t)]).must_be_close_to 0, 60
-  end
-
   it "should have working CURRENT_TIMESTAMP" do
     @db.create_table!(:constants){DateTime :ts}
     @ds.insert(:ts=>Sequel::CURRENT_TIMESTAMP)
     (Time.now - @c[@ds.get(:ts)]).must_be_close_to 0, 60
   end
-
-  it "should have working CURRENT_TIMESTAMP when used as a column default" do
-    @db.create_table!(:constants){DateTime :ts, :default=>Sequel::CURRENT_TIMESTAMP}
-    @ds.insert
-    (Time.now - @c[@ds.get(:ts)]).must_be_close_to 0, 60
-  end
 end
 
+__END__
 describe "Sequel::Dataset#import and #multi_insert" do
   before(:all) do
     @db = DB
