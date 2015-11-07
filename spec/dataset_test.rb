@@ -586,55 +586,14 @@ describe "Sequel::Dataset#import and #multi_insert" do
   end
 end
 
-__END__
 describe "Sequel::Dataset convenience methods" do
-  before(:all) do
-    @db = DB
-    @db.create_table!(:a){Integer :a; Integer :b; Integer :c}
-    @ds = @db[:a]
-    @ds.insert(1, 3, 5)
-    @ds.insert(1, 3, 6)
-    @ds.insert(1, 4, 5)
-    @ds.insert(2, 3, 5)
-    @ds.insert(2, 4, 6)
-  end
-  after(:all) do
-    @db.drop_table?(:a)
-  end
-  
-  it "#group_rollup should include hierarchy of groupings" do
-    @ds.group_by(:a).group_rollup.select_map([:a, Sequel.function(:sum, :b).cast(Integer).as(:b), Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, 17, 27], [1, 10, 16], [2, 7, 11]]
-    @ds.group_by(:a, :b).group_rollup.select_map([:a, :b, Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, nil, 27], [1, nil, 16], [1, 3, 11], [1, 4, 5], [2, nil, 11], [2, 3, 5], [2, 4, 6]]
-  end if DB.dataset.supports_group_rollup?
-
-  it "#group_cube should include all combinations of groupings" do
-    @ds.group_by(:a).group_cube.select_map([:a, Sequel.function(:sum, :b).cast(Integer).as(:b), Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, 17, 27], [1, 10, 16], [2, 7, 11]]
-    @ds.group_by(:a, :b).group_cube.select_map([:a, :b, Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, nil, 27], [nil, 3, 16], [nil, 4, 11], [1, nil, 16], [1, 3, 11], [1, 4, 5], [2, nil, 11], [2, 3, 5], [2, 4, 6]]
-  end if DB.dataset.supports_group_cube?
-
-  it "#grouping_sets should include sets specified in group" do
-    @ds.group_by(:a, []).grouping_sets.select_map([:a, Sequel.function(:sum, :b).cast(Integer).as(:b), Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, 17, 27], [1, 10, 16], [2, 7, 11]]
-    @ds.group_by([:a, :b], :a, :b, []).grouping_sets.select_map([:a, :b, Sequel.function(:sum, :c).cast(Integer).as(:c)]).sort_by{|x| x.map(&:to_i)}.must_equal [[nil, nil, 27], [nil, 3, 16], [nil, 4, 11], [1, nil, 16], [1, 3, 11], [1, 4, 5], [2, nil, 11], [2, 3, 5], [2, 4, 6]]
-  end if DB.dataset.supports_grouping_sets?
-end
-
-describe "Sequel::Dataset convenience methods" do
-  before(:all) do
+  before do
     @db = DB
     @db.create_table!(:a){Integer :a; Integer :b}
     @ds = @db[:a].order(:a)
   end
-  before do
-    @ds.delete
-  end
-  after(:all) do
+  after do
     @db.drop_table?(:a)
-  end
-  
-  it "#[]= should update matching rows" do
-    @ds.insert(20, 10)
-    @ds.extension(:sequel_3_dataset_methods)[:a=>20] = {:b=>30}
-    @ds.all.must_equal [{:a=>20, :b=>30}]
   end
   
   it "#empty? should return whether the dataset returns no rows" do
@@ -651,7 +610,7 @@ describe "Sequel::Dataset convenience methods" do
   end
   
   it "#empty? should work correctly for datasets with limits and offsets" do
-    ds = @ds.limit(1, 1)
+    ds = @ds.order(:a).limit(1, 1)
     ds.empty?.must_equal true
     ds.insert(20, 10)
     ds.empty?.must_equal true
@@ -696,6 +655,7 @@ describe "Sequel::Dataset convenience methods" do
   end
 end
   
+__END__
 describe "Sequel::Dataset main SQL methods" do
   before(:all) do
     @db = DB
