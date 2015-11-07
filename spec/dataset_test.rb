@@ -1035,7 +1035,6 @@ describe "Sequel::Dataset DSL support" do
     @ds.filter(Sequel.~(:a=>10)).all.must_equal [{:a=>20, :b=>10}]
   end
 end
-__END__
 
 describe "SQL Extract Function" do
   before do
@@ -1060,6 +1059,7 @@ describe "SQL Extract Function" do
   end
 end
 
+__END__
 describe "Dataset string methods" do
   before(:all) do
     @db = DB
