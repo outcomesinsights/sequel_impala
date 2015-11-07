@@ -300,7 +300,6 @@ describe Sequel::Dataset do
   end
 end
 
-__END__
 describe Sequel::Database do
   it "should correctly escape strings" do
     ["\\\n",
@@ -321,19 +320,6 @@ describe Sequel::Database do
     end
   end
 
-  it "should properly escape binary data" do
-    DB.get(Sequel.cast(Sequel.blob("\1\2\3"), File).as(:a)).must_equal "\1\2\3"
-  end
-
-  it "should properly handle empty blobs" do
-    DB.get(Sequel.cast(Sequel.blob(""), File).as(:a)).must_equal ""
-  end
-
-  it "should properly escape identifiers" do
-    DB.create_table(:"\\'\"[]"){Integer :id}
-    DB.drop_table(:"\\'\"[]")
-  end
-
   it "should have a working table_exists?" do
     t = :basdfdsafsaddsaf
     DB.drop_table?(t)
@@ -347,6 +333,7 @@ describe Sequel::Database do
   end
 end
 
+__END__
 describe Sequel::Dataset do
   before do
     DB.create_table! :items do

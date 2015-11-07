@@ -48,6 +48,9 @@ module Sequel
       extend Invalid
 
       BACKTICK = '`'.freeze
+      APOS = "'".freeze
+      STRING_ESCAPE_RE = /([\\'])/
+      STRING_ESCAPE_REPLACE = '\\\\\1'.freeze
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
 
@@ -85,8 +88,17 @@ module Sequel
         BOOL_FALSE
       end
 
+      def literal_string_append(sql, s)
+        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE, STRING_ESCAPE_REPLACE) << APOS 
+      end
+
       def quoted_identifier_append(sql, name)
         sql << BACKTICK << name.to_s << BACKTICK
+      end
+
+      def select_limit_sql(sql)
+        return unless opts[:from]
+        super
       end
     end
   end
