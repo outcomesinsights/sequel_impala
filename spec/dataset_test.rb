@@ -547,17 +547,13 @@ describe Sequel::SQL::Constants do
   end
 end
 
-__END__
 describe "Sequel::Dataset#import and #multi_insert" do
-  before(:all) do
+  before do
     @db = DB
     @db.create_table!(:imp){Integer :i}
     @ids = @db[:imp].order(:i)
   end
-  before do
-    @ids.delete
-  end
-  after(:all) do
+  after do
     @db.drop_table?(:imp)
   end
 
@@ -582,43 +578,15 @@ describe "Sequel::Dataset#import and #multi_insert" do
   it "should have import work with the :slice_size option" do
     @ids.import([:i], [[10], [20], [30]], :slice_size=>1)
     @ids.all.must_equal [{:i=>10}, {:i=>20}, {:i=>30}]
-    @ids.delete
-    @ids.import([:i], [[10], [20], [30]], :slice_size=>2)
-    @ids.all.must_equal [{:i=>10}, {:i=>20}, {:i=>30}]
-    @ids.delete
-    @ids.import([:i], [[10], [20], [30]], :slice_size=>3)
-    @ids.all.must_equal [{:i=>10}, {:i=>20}, {:i=>30}]
   end
 
   it "should import many rows at once" do
-    @ids.import([:i], (1..1000).to_a.map{|x| [x]})
-    @ids.select_order_map(:i).must_equal((1..1000).to_a)
+    @ids.import([:i], (1..20).to_a.map{|x| [x]})
+    @ids.select_order_map(:i).must_equal((1..20).to_a)
   end
 end
 
-describe "Sequel::Dataset#import and #multi_insert :return=>:primary_key " do
-  before do
-    @db = DB
-    @db.create_table!(:imp){primary_key :id; Integer :i}
-    @ds = @db[:imp]
-  end
-  after do
-    @db.drop_table?(:imp)
-  end
-
-  it "should return primary key values" do
-    @ds.multi_insert([{:i=>10}, {:i=>20}, {:i=>30}], :return=>:primary_key).must_equal [1, 2, 3]
-    @ds.import([:i], [[40], [50], [60]], :return=>:primary_key).must_equal [4, 5, 6]
-    @ds.order(:id).map([:id, :i]).must_equal [[1, 10], [2, 20], [3, 30], [4, 40], [5, 50], [6, 60]]
-  end
-
-  it "should return primary key values when :slice is used" do
-    @ds.multi_insert([{:i=>10}, {:i=>20}, {:i=>30}], :return=>:primary_key, :slice=>2).must_equal [1, 2, 3]
-    @ds.import([:i], [[40], [50], [60]], :return=>:primary_key, :slice=>2).must_equal [4, 5, 6]
-    @ds.order(:id).map([:id, :i]).must_equal [[1, 10], [2, 20], [3, 30], [4, 40], [5, 50], [6, 60]]
-  end
-end
-
+__END__
 describe "Sequel::Dataset convenience methods" do
   before(:all) do
     @db = DB
