@@ -822,17 +822,13 @@ describe "Sequel::Dataset convenience methods" do
   end
 end
 
-__END__
 describe "Sequel::Dataset DSL support" do
-  before(:all) do
+  before do
     @db = DB
     @db.create_table!(:a){Integer :a; Integer :b}
     @ds = @db[:a].order(:a)
   end
-  before do
-    @ds.delete
-  end
-  after(:all) do
+  after do
     @db.drop_table?(:a)
   end
   
@@ -844,18 +840,6 @@ describe "Sequel::Dataset DSL support" do
     @ds.get{a / b}.to_i.must_equal 2
   end
   
-  it "should work with bitwise shift operators" do
-    @ds.insert(3, 2)
-    @ds.get{a.sql_number << b}.to_i.must_equal 12
-    @ds.get{a.sql_number >> b}.to_i.must_equal 0
-    @ds.get{a.sql_number << b << 1}.to_i.must_equal 24
-    @ds.delete
-    @ds.insert(3, 1)
-    @ds.get{a.sql_number << b}.to_i.must_equal 6
-    @ds.get{a.sql_number >> b}.to_i.must_equal 1
-    @ds.get{a.sql_number >> b >> 1}.to_i.must_equal 0
-  end
-
   it "should work with bitwise AND and OR operators" do
     @ds.insert(3, 5)
     @ds.get{a.sql_number | b}.to_i.must_equal 7
@@ -1020,14 +1004,11 @@ describe "Sequel::Dataset DSL support" do
     @ds.filter([:a, :b]=>[]).all.must_equal []
     @ds.exclude([:a, :b]=>[]).all.must_equal []
 
-    unless Sequel.guarded?(:mssql, :oracle, :db2, :sqlanywhere)
-      # Some databases don't like boolean results in the select list
-      pr = proc{|r| r.is_a?(Integer) ? (r != 0) : r}
-      pr[@ds.get(Sequel.expr(:a=>[]))].must_equal nil
-      pr[@ds.get(~Sequel.expr(:a=>[]))].must_equal nil
-      pr[@ds.get(Sequel.expr([:a, :b]=>[]))].must_equal nil
-      pr[@ds.get(~Sequel.expr([:a, :b]=>[]))].must_equal nil
-    end
+    pr = proc{|r| r.is_a?(Integer) ? (r != 0) : r}
+    pr[@ds.get(Sequel.expr(:a=>[]))].must_equal nil
+    pr[@ds.get(~Sequel.expr(:a=>[]))].must_equal nil
+    pr[@ds.get(Sequel.expr([:a, :b]=>[]))].must_equal nil
+    pr[@ds.get(~Sequel.expr([:a, :b]=>[]))].must_equal nil
   end
   
   it "should work empty arrays with nulls and the empty_array_ignore_nulls extension" do
@@ -1038,14 +1019,11 @@ describe "Sequel::Dataset DSL support" do
     ds.filter([:a, :b]=>[]).all.must_equal []
     ds.exclude([:a, :b]=>[]).all.must_equal [{:a=>nil, :b=>nil}]
 
-    unless Sequel.guarded?(:mssql, :oracle, :db2, :sqlanywhere)
-      # Some databases don't like boolean results in the select list
-      pr = proc{|r| r.is_a?(Integer) ? (r != 0) : r}
-      pr[ds.get(Sequel.expr(:a=>[]))].must_equal false
-      pr[ds.get(~Sequel.expr(:a=>[]))].must_equal true
-      pr[ds.get(Sequel.expr([:a, :b]=>[]))].must_equal false
-      pr[ds.get(~Sequel.expr([:a, :b]=>[]))].must_equal true
-    end
+    pr = proc{|r| r.is_a?(Integer) ? (r != 0) : r}
+    pr[ds.get(Sequel.expr(:a=>[]))].must_equal false
+    pr[ds.get(~Sequel.expr(:a=>[]))].must_equal true
+    pr[ds.get(Sequel.expr([:a, :b]=>[]))].must_equal false
+    pr[ds.get(~Sequel.expr([:a, :b]=>[]))].must_equal true
   end
 
   it "should work multiple conditions" do
@@ -1057,6 +1035,7 @@ describe "Sequel::Dataset DSL support" do
     @ds.filter(Sequel.~(:a=>10)).all.must_equal [{:a=>20, :b=>10}]
   end
 end
+__END__
 
 describe "SQL Extract Function" do
   before do

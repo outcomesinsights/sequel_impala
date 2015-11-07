@@ -59,12 +59,21 @@ module Sequel
       invalid :delete, "Impala does not support DELETE"
       invalid :truncate, "Impala does not support TRUNCATE or DELETE"
 
-      def empty?
-        get(Sequel::SQL::AliasedExpression.new(1, :one)).nil?
+      def complex_expression_sql_append(sql, op, args)
+        case op
+        when :'||'
+          literal_append(sql, Sequel.function(:concat, *args))
+        else
+          super
+        end
       end
 
       def constant_sql_append(sql, constant)
         sql << CONSTANT_LITERAL_MAP.fetch(constant, constant.to_s)
+      end
+
+      def empty?
+        get(Sequel::SQL::AliasedExpression.new(1, :one)).nil?
       end
 
       def insert_supports_empty_values?
@@ -87,6 +96,10 @@ module Sequel
         false
       end
     
+      def supports_multiple_column_in?
+        false
+      end
+
       def supports_window_functions?
         true
       end
