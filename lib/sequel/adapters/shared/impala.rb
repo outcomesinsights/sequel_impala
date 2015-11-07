@@ -28,13 +28,19 @@ module Sequel
       def serial_primary_key_options
         {:type=>Integer}
       end
-      
+
+      private
+
       def identifier_input_method_default
         nil
       end
      
       def identifier_output_method_default
         nil
+      end
+
+      def type_literal_generic_string(column)
+        'string'
       end
     end
 

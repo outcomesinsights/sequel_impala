@@ -106,6 +106,7 @@ describe "Simple Dataset operations" do
     @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 1).all.must_equal []
     @db.drop_table(:items2)
   end
+  
 end
 
 describe "Simple Dataset operations" do
@@ -257,95 +258,49 @@ describe "Simple Dataset operations" do
     @ds.filter(false).select_map(:number).must_equal []
     @ds.filter({:id=>1}=>true).select_map(:number).must_equal [10]
     @ds.filter({:id=>1}=>false).select_map(:number).must_equal []
-  end
-end
-
-__END__
-describe Sequel::Dataset do
-  before do
-    DB.create_table!(:test) do
-      String :name
-      Integer :value
-    end
-    @d = DB[:test]
-  end
-  after do
-    DB.drop_table?(:test)
-  end
-
-  it "should return the correct record count" do
-    @d.count.must_equal 0
-    @d << {:name => 'abc', :value => 123}
-    @d << {:name => 'abc', :value => 456}
-    @d << {:name => 'def', :value => 789}
-    @d.count.must_equal 3
-  end
-
-  it "should handle functions with identifier names correctly" do
-    @d << {:name => 'abc', :value => 6}
-    @d.get{sum.function(:value)}.must_equal 6
-  end
-
-  it "should handle aggregate methods on limited datasets correctly" do
-    @d << {:name => 'abc', :value => 6}
-    @d << {:name => 'bcd', :value => 12}
-    @d << {:name => 'def', :value => 18}
-    @d = @d.order(:name).limit(2)
-    @d.count.must_equal 2
-    @d.avg(:value).to_i.must_equal 9
-    @d.min(:value).to_i.must_equal 6
-    @d.reverse.min(:value).to_i.must_equal 12
-    @d.max(:value).to_i.must_equal 12
-    @d.sum(:value).to_i.must_equal 18
-    @d.interval(:value).to_i.must_equal 6
-  end
-
-  it "should return the correct records" do
-    @d.to_a.must_equal []
-    @d << {:name => 'abc', :value => 123}
-    @d << {:name => 'abc', :value => 456}
-    @d << {:name => 'def', :value => 789}
-
-    @d.order(:value).to_a.must_equal [
-      {:name => 'abc', :value => 123},
-      {:name => 'abc', :value => 456},
-      {:name => 'def', :value => 789}
-    ]
-  end
-
-  it "should update records correctly" do
-    @d << {:name => 'abc', :value => 123}
-    @d << {:name => 'abc', :value => 456}
-    @d << {:name => 'def', :value => 789}
-    @d.filter(:name => 'abc').update(:value => 530)
-    @d[:name => 'def'][:value].must_equal 789
-    @d.filter(:value => 530).count.must_equal 2
-  end
-
-  it "should delete records correctly" do
-    @d << {:name => 'abc', :value => 123}
-    @d << {:name => 'abc', :value => 456}
-    @d << {:name => 'def', :value => 789}
-    @d.filter(:name => 'abc').delete
-    @d.count.must_equal 1
-    @d.first[:name].must_equal 'def'
-  end
-  
-  it "should be able to truncate the table" do
-    @d << {:name => 'abc', :value => 123}
-    @d << {:name => 'abc', :value => 456}
-    @d << {:name => 'def', :value => 789}
-    @d.count.must_equal 3
-    @d.truncate.must_equal nil
-    @d.count.must_equal 0
-  end
-
-  it "should be able to literalize booleans" do
     @d.literal(true)
     @d.literal(false)
   end
 end
 
+describe Sequel::Dataset do
+  before(:all) do
+    DB.create_table!(:test) do
+      String :name
+      Integer :value
+    end
+    @d = DB[:test]
+    @d.multi_insert([{:name => 'abc', :value => 123}, {:name => 'abc', :value => 456}, {:name => 'def', :value => 789}])
+  end
+  after(:all) do
+    DB.drop_table?(:test)
+  end
+
+  it "should return the correct record count" do
+    @d.count.must_equal 3
+  end
+
+  it "should handle functions with identifier names correctly" do
+    @d.get{sum.function(:value)}.must_equal 1368
+  end
+
+  it "should handle aggregate methods on limited datasets correctly" do
+    @d = @d.order(:name).limit(2)
+    @d.count.must_equal 2
+    @d.avg(:value).to_i.must_equal 289
+    @d.min(:value).to_i.must_equal 123
+    @d.reverse.min(:value).to_i.must_equal 123
+    @d.max(:value).to_i.must_equal 456
+    @d.sum(:value).to_i.must_equal 579
+    @d.interval(:value).to_i.must_equal 333
+  end
+
+  it "should return the correct records" do
+    @d.order(:value).to_a.must_equal [{:name => 'abc', :value => 123}, {:name => 'abc', :value => 456}, {:name => 'def', :value => 789}]
+  end
+end
+
+__END__
 describe Sequel::Database do
   it "should correctly escape strings" do
     ["\\\n",
