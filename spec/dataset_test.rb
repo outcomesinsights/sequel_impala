@@ -470,59 +470,57 @@ describe "Common Table Expressions" do
   end
 end
 
-__END__
-if DB.dataset.supports_window_functions?
-  describe "Window Functions" do
-    before(:all) do
-      @db = DB
-      @db.create_table!(:i1){Integer :id; Integer :group_id; Integer :amount}
-      @ds = @db[:i1].order(:id)
-      @ds.insert(:id=>1, :group_id=>1, :amount=>1)
-      @ds.insert(:id=>2, :group_id=>1, :amount=>10)
-      @ds.insert(:id=>3, :group_id=>1, :amount=>100)
-      @ds.insert(:id=>4, :group_id=>2, :amount=>1000)
-      @ds.insert(:id=>5, :group_id=>2, :amount=>10000)
-      @ds.insert(:id=>6, :group_id=>2, :amount=>100000)
-    end
-    after(:all) do
-      @db.drop_table?(:i1)
-    end
+describe "Window Functions" do
+  before(:all) do
+    @db = DB
+    @db.create_table!(:i1){Integer :id; Integer :group_id; Integer :amount}
+    @ds = @db[:i1].order(:id)
+    @ds.insert(:id=>1, :group_id=>1, :amount=>1)
+    @ds.insert(:id=>2, :group_id=>1, :amount=>10)
+    @ds.insert(:id=>3, :group_id=>1, :amount=>100)
+    @ds.insert(:id=>4, :group_id=>2, :amount=>1000)
+    @ds.insert(:id=>5, :group_id=>2, :amount=>10000)
+    @ds.insert(:id=>6, :group_id=>2, :amount=>100000)
+  end
+  after(:all) do
+    @db.drop_table?(:i1)
+  end
+  
+  it "should give correct results for aggregate window functions" do
+    @ds.select(:id){sum(:amount).over(:partition=>:group_id).as(:sum)}.all.
+      must_equal [{:sum=>111, :id=>1}, {:sum=>111, :id=>2}, {:sum=>111, :id=>3}, {:sum=>111000, :id=>4}, {:sum=>111000, :id=>5}, {:sum=>111000, :id=>6}]
+    @ds.select(:id){sum(:amount).over.as(:sum)}.all.
+      must_equal [{:sum=>111111, :id=>1}, {:sum=>111111, :id=>2}, {:sum=>111111, :id=>3}, {:sum=>111111, :id=>4}, {:sum=>111111, :id=>5}, {:sum=>111111, :id=>6}]
+  end
     
-    it "should give correct results for aggregate window functions" do
-      @ds.select(:id){sum(:amount).over(:partition=>:group_id).as(:sum)}.all.
-        must_equal [{:sum=>111, :id=>1}, {:sum=>111, :id=>2}, {:sum=>111, :id=>3}, {:sum=>111000, :id=>4}, {:sum=>111000, :id=>5}, {:sum=>111000, :id=>6}]
-      @ds.select(:id){sum(:amount).over.as(:sum)}.all.
-        must_equal [{:sum=>111111, :id=>1}, {:sum=>111111, :id=>2}, {:sum=>111111, :id=>3}, {:sum=>111111, :id=>4}, {:sum=>111111, :id=>5}, {:sum=>111111, :id=>6}]
-    end
-      
-    it "should give correct results for ranking window functions with orders" do
-      @ds.select(:id){rank{}.over(:partition=>:group_id, :order=>:id).as(:rank)}.all.
-        must_equal [{:rank=>1, :id=>1}, {:rank=>2, :id=>2}, {:rank=>3, :id=>3}, {:rank=>1, :id=>4}, {:rank=>2, :id=>5}, {:rank=>3, :id=>6}]
-      @ds.select(:id){rank{}.over(:order=>id).as(:rank)}.all.
-        must_equal [{:rank=>1, :id=>1}, {:rank=>2, :id=>2}, {:rank=>3, :id=>3}, {:rank=>4, :id=>4}, {:rank=>5, :id=>5}, {:rank=>6, :id=>6}]
-    end
-      
-    it "should give correct results for aggregate window functions with orders" do
-      @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id).as(:sum)}.all.
-        must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1000, :id=>4}, {:sum=>11000, :id=>5}, {:sum=>111000, :id=>6}]
-      @ds.select(:id){sum(:amount).over(:order=>:id).as(:sum)}.all.
-        must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1111, :id=>4}, {:sum=>11111, :id=>5}, {:sum=>111111, :id=>6}]
-    end
+  it "should give correct results for ranking window functions with orders" do
+    @ds.select(:id){rank{}.over(:partition=>:group_id, :order=>:id).as(:rank)}.all.
+      must_equal [{:rank=>1, :id=>1}, {:rank=>2, :id=>2}, {:rank=>3, :id=>3}, {:rank=>1, :id=>4}, {:rank=>2, :id=>5}, {:rank=>3, :id=>6}]
+    @ds.select(:id){rank{}.over(:order=>id).as(:rank)}.all.
+      must_equal [{:rank=>1, :id=>1}, {:rank=>2, :id=>2}, {:rank=>3, :id=>3}, {:rank=>4, :id=>4}, {:rank=>5, :id=>5}, {:rank=>6, :id=>6}]
+  end
     
-    it "should give correct results for aggregate window functions with frames" do
-      @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id, :frame=>:all).as(:sum)}.all.
-        must_equal [{:sum=>111, :id=>1}, {:sum=>111, :id=>2}, {:sum=>111, :id=>3}, {:sum=>111000, :id=>4}, {:sum=>111000, :id=>5}, {:sum=>111000, :id=>6}]
-      @ds.select(:id){sum(:amount).over(:order=>:id, :frame=>:all).as(:sum)}.all.
-        must_equal [{:sum=>111111, :id=>1}, {:sum=>111111, :id=>2}, {:sum=>111111, :id=>3}, {:sum=>111111, :id=>4}, {:sum=>111111, :id=>5}, {:sum=>111111, :id=>6}]
-        
-      @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id, :frame=>:rows).as(:sum)}.all.
-        must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1000, :id=>4}, {:sum=>11000, :id=>5}, {:sum=>111000, :id=>6}]
-      @ds.select(:id){sum(:amount).over(:order=>:id, :frame=>:rows).as(:sum)}.all.
-        must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1111, :id=>4}, {:sum=>11111, :id=>5}, {:sum=>111111, :id=>6}]
-    end
+  it "should give correct results for aggregate window functions with orders" do
+    @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id).as(:sum)}.all.
+      must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1000, :id=>4}, {:sum=>11000, :id=>5}, {:sum=>111000, :id=>6}]
+    @ds.select(:id){sum(:amount).over(:order=>:id).as(:sum)}.all.
+      must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1111, :id=>4}, {:sum=>11111, :id=>5}, {:sum=>111111, :id=>6}]
+  end
+  
+  it "should give correct results for aggregate window functions with frames" do
+    @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id, :frame=>:all).as(:sum)}.all.
+      must_equal [{:sum=>111, :id=>1}, {:sum=>111, :id=>2}, {:sum=>111, :id=>3}, {:sum=>111000, :id=>4}, {:sum=>111000, :id=>5}, {:sum=>111000, :id=>6}]
+    @ds.select(:id){sum(:amount).over(:order=>:id, :frame=>:all).as(:sum)}.all.
+      must_equal [{:sum=>111111, :id=>1}, {:sum=>111111, :id=>2}, {:sum=>111111, :id=>3}, {:sum=>111111, :id=>4}, {:sum=>111111, :id=>5}, {:sum=>111111, :id=>6}]
+      
+    @ds.select(:id){sum(:amount).over(:partition=>:group_id, :order=>:id, :frame=>:rows).as(:sum)}.all.
+      must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1000, :id=>4}, {:sum=>11000, :id=>5}, {:sum=>111000, :id=>6}]
+    @ds.select(:id){sum(:amount).over(:order=>:id, :frame=>:rows).as(:sum)}.all.
+      must_equal [{:sum=>1, :id=>1}, {:sum=>11, :id=>2}, {:sum=>111, :id=>3}, {:sum=>1111, :id=>4}, {:sum=>11111, :id=>5}, {:sum=>111111, :id=>6}]
   end
 end
 
+__END__
 describe Sequel::SQL::Constants do
   before do
     @db = DB

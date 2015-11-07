@@ -78,6 +78,10 @@ module Sequel
         false
       end
     
+      def supports_window_functions?
+        true
+      end
+
       private
 
       def insert_empty_columns_values
