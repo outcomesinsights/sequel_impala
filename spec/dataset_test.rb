@@ -655,17 +655,13 @@ describe "Sequel::Dataset convenience methods" do
   end
 end
   
-__END__
 describe "Sequel::Dataset main SQL methods" do
-  before(:all) do
+  before do
     @db = DB
     @db.create_table!(:d){Integer :a; Integer :b}
     @ds = @db[:d].order(:a)
   end
-  before do
-    @ds.delete
-  end
-  after(:all) do
+  after do
     @db.drop_table?(:d)
   end
   
@@ -727,6 +723,7 @@ describe "Sequel::Dataset main SQL methods" do
   end
 end
 
+__END__
 describe "Sequel::Dataset convenience methods" do
   before(:all) do
     @db = DB
