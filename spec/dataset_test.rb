@@ -425,149 +425,52 @@ describe "Dataset UNION, EXCEPT, and INTERSECT" do
     @ds1.union(@ds2.union(@ds3)).order(:number).map{|x| x[:number].to_s}.must_equal %w'8 9 10 20 30 38 39 40'
   end
 end
+
+describe "Common Table Expressions" do
+  before(:all) do
+    @db = DB
+    @db.create_table!(:i1){Integer :id; Integer :parent_id}
+    @ds = @db[:i1]
+    @ds.insert(:id=>1)
+    @ds.insert(:id=>2)
+    @ds.insert(:id=>3, :parent_id=>1)
+    @ds.insert(:id=>4, :parent_id=>1)
+    @ds.insert(:id=>5, :parent_id=>3)
+    @ds.insert(:id=>6, :parent_id=>5)
+  end
+  after(:all) do
+    @db.drop_table?(:i1)
+  end
+  
+  it "should give correct results for WITH" do
+    @db[:t].with(:t, @ds.filter(:parent_id=>nil).select(:id)).order(:id).map(:id).must_equal [1, 2]
+  end
+  
+  it "should support joining a dataset with a CTE" do
+    @ds.inner_join(@db[:t].with(:t, @ds.filter(:parent_id=>nil)), :id => :id).select(:i1__id).order(:i1__id).map(:id).must_equal [1,2]
+    @db[:t].with(:t, @ds).inner_join(@db[:s].with(:s, @ds.filter(:parent_id=>nil)), :id => :id).select(:t__id).order(:t__id).map(:id).must_equal [1,2]
+  end
+
+  it "should support a subselect in the FROM clause with a CTE" do
+    @ds.from(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
+    @db[:t].with(:t, @ds).from_self.select_order_map(:id).must_equal [1,2,3,4,5,6]
+  end
+
+  it "should support using a CTE inside a CTE" do
+    @db[:s].with(:s, @db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
+    @db[:s].with_recursive(:s, @db[:t].with(:t, @ds), @db[:t2].with(:t2, @ds)).select_order_map(:id).must_equal [1,1,2,2,3,3,4,4,5,5,6,6]
+  end
+
+  it "should support using a CTE inside UNION/EXCEPT/INTERSECT" do
+    @ds.union(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
+    if @ds.supports_intersect_except?
+      @ds.intersect(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
+      @ds.except(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal []
+    end
+  end
+end
+
 __END__
-
-if DB.dataset.supports_cte?
-  describe "Common Table Expressions" do
-    before(:all) do
-      @db = DB
-      @db.create_table!(:i1){Integer :id; Integer :parent_id}
-      @ds = @db[:i1]
-      @ds.insert(:id=>1)
-      @ds.insert(:id=>2)
-      @ds.insert(:id=>3, :parent_id=>1)
-      @ds.insert(:id=>4, :parent_id=>1)
-      @ds.insert(:id=>5, :parent_id=>3)
-      @ds.insert(:id=>6, :parent_id=>5)
-    end
-    after(:all) do
-      @db.drop_table?(:i1)
-    end
-    
-    it "should give correct results for WITH" do
-      @db[:t].with(:t, @ds.filter(:parent_id=>nil).select(:id)).order(:id).map(:id).must_equal [1, 2]
-    end
-    
-    it "should give correct results for recursive WITH" do
-      ds = @db[:t].select(:i___id, :pi___parent_id).with_recursive(:t, @ds.filter(:parent_id=>nil), @ds.join(:t, :i=>:parent_id).select(:i1__id, :i1__parent_id), :args=>[:i, :pi]).order(:id)
-      ds.all.must_equal [{:parent_id=>nil, :id=>1}, {:parent_id=>nil, :id=>2}, {:parent_id=>1, :id=>3}, {:parent_id=>1, :id=>4}, {:parent_id=>3, :id=>5}, {:parent_id=>5, :id=>6}]
-      ps = @db[:t].select(:i___id, :pi___parent_id).with_recursive(:t, @ds.filter(:parent_id=>:$n), @ds.join(:t, :i=>:parent_id).filter(:t__i=>:parent_id).select(:i1__id, :i1__parent_id), :args=>[:i, :pi]).order(:id).prepare(:select, :cte_sel)
-      ps.call(:n=>1).must_equal [{:id=>3, :parent_id=>1}, {:id=>4, :parent_id=>1}, {:id=>5, :parent_id=>3}, {:id=>6, :parent_id=>5}]
-      ps.call(:n=>3).must_equal [{:id=>5, :parent_id=>3}, {:id=>6, :parent_id=>5}]
-      ps.call(:n=>5).must_equal [{:id=>6, :parent_id=>5}]
-    end
-
-    it "should support joining a dataset with a CTE" do
-      @ds.inner_join(@db[:t].with(:t, @ds.filter(:parent_id=>nil)), :id => :id).select(:i1__id).order(:i1__id).map(:id).must_equal [1,2]
-      @db[:t].with(:t, @ds).inner_join(@db[:s].with(:s, @ds.filter(:parent_id=>nil)), :id => :id).select(:t__id).order(:t__id).map(:id).must_equal [1,2]
-    end
-
-    it "should support a subselect in the FROM clause with a CTE" do
-      @ds.from(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-      @db[:t].with(:t, @ds).from_self.select_order_map(:id).must_equal [1,2,3,4,5,6]
-    end
-
-    it "should support using a CTE inside a CTE" do
-      @db[:s].with(:s, @db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-      @db[:s].with_recursive(:s, @db[:t].with(:t, @ds), @db[:t2].with(:t2, @ds)).select_order_map(:id).must_equal [1,1,2,2,3,3,4,4,5,5,6,6]
-    end
-
-    it "should support using a CTE inside UNION/EXCEPT/INTERSECT" do
-      @ds.union(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-      if @ds.supports_intersect_except?
-        @ds.intersect(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-        @ds.except(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal []
-      end
-    end
-  end
-end
-
-if DB.dataset.supports_cte?(:update) # Assume INSERT and DELETE support as well
-  describe "Common Table Expressions in INSERT/UPDATE/DELETE" do
-    before do
-      @db = DB
-      @db.create_table!(:i1){Integer :id}
-      @ds = @db[:i1]
-      @ds2 = @ds.with(:t, @ds)
-      @ds.insert(:id=>1)
-      @ds.insert(:id=>2)
-    end
-    after do
-      @db.drop_table?(:i1)
-    end
-    
-    it "should give correct results for WITH" do
-      @ds2.insert(@db[:t])
-      @ds.select_order_map(:id).must_equal [1, 1, 2, 2]
-      @ds2.filter(:id=>@db[:t].select{max(id)}).update(:id=>Sequel.+(:id, 1))
-      @ds.select_order_map(:id).must_equal [1, 1, 3, 3]
-      @ds2.filter(:id=>@db[:t].select{max(id)}).delete
-      @ds.select_order_map(:id).must_equal [1, 1]
-    end
-  end
-end
-
-if DB.dataset.supports_returning?(:insert)
-  describe "RETURNING clauses in INSERT" do
-    before do
-      @db = DB
-      @db.create_table!(:i1){Integer :id; Integer :foo}
-      @ds = @db[:i1]
-    end
-    after do
-      @db.drop_table?(:i1)
-    end
-    
-    it "should give correct results" do
-      h = {}
-      @ds.returning(:foo).insert(1, 2){|r| h = r}
-      h.must_equal(:foo=>2)
-      @ds.returning(:id).insert(3, 4){|r| h = r}
-      h.must_equal(:id=>3)
-      @ds.returning.insert(5, 6){|r| h = r}
-      h.must_equal(:id=>5, :foo=>6)
-      @ds.returning(:id___foo, :foo___id).insert(7, 8){|r| h = r}
-      h.must_equal(:id=>8, :foo=>7)
-    end
-  end
-end
-
-if DB.dataset.supports_returning?(:update) # Assume DELETE support as well
-  describe "RETURNING clauses in UPDATE/DELETE" do
-    before do
-      @db = DB
-      @db.create_table!(:i1){Integer :id; Integer :foo}
-      @ds = @db[:i1]
-      @ds.insert(1, 2)
-    end
-    after do
-      @db.drop_table?(:i1)
-    end
-    
-    it "should give correct results" do
-      h = []
-      @ds.returning(:foo).update(:id=>Sequel.+(:id, 1), :foo=>Sequel.*(:foo, 2)){|r| h << r}
-      h.must_equal [{:foo=>4}]
-      h.clear
-      @ds.returning(:id).update(:id=>Sequel.+(:id, 1), :foo=>Sequel.*(:foo, 2)){|r| h << r}
-      h.must_equal [{:id=>3}]
-      h.clear
-      @ds.returning.update(:id=>Sequel.+(:id, 1), :foo=>Sequel.*(:foo, 2)){|r| h << r}
-      h.must_equal [{:id=>4, :foo=>16}]
-      h.clear
-      @ds.returning(:id___foo, :foo___id).update(:id=>Sequel.+(:id, 1), :foo=>Sequel.*(:foo, 2)){|r| h << r}
-      h.must_equal [{:id=>32, :foo=>5}]
-      h.clear
-
-      @ds.returning.delete{|r| h << r}
-      h.must_equal [{:id=>5, :foo=>32}]
-      h.clear
-      @ds.returning.delete{|r| h << r}
-      h.must_equal []
-    end
-  end
-end
-
 if DB.dataset.supports_window_functions?
   describe "Window Functions" do
     before(:all) do
