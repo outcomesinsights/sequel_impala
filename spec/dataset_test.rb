@@ -349,7 +349,6 @@ describe Sequel::Database do
   end
 end
 
-__END__
 describe "Simple Dataset operations" do
   before do
     DB.create_table!(:items) do
@@ -376,6 +375,7 @@ describe "Simple Dataset operations" do
   end
 end
 
+__END__
 describe "Simple Dataset operations in transactions" do
   before do
     DB.create_table!(:items) do
