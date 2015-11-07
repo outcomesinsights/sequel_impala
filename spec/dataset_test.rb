@@ -1236,26 +1236,24 @@ describe "Dataset defaults and overrides" do
   end
 end
 
-__END__
 describe "Emulated functions" do
-  before(:all) do
+  before do
     @db = DB
     @db.create_table!(:a){String :a}
     @ds = @db[:a]
   end
-  after(:all) do
-    @db.drop_table?(:a)
-  end
   after do
-    @ds.delete
+    @db.drop_table?(:a)
   end
   
   it "Sequel.char_length should return the length of characters in the string" do
     @ds.get(Sequel.char_length(:a)).must_equal nil
     @ds.insert(:a=>'foo')
     @ds.get(Sequel.char_length(:a)).must_equal 3
-    # Check behavior with leading/trailing blanks
-    @ds.update(:a=>' foo22 ')
+  end
+
+  it "Sequel.char_length should return the length of characters in the string including trailing blanks" do
+    @ds.insert(:a=>' foo22 ')
     @ds.get(Sequel.char_length(:a)).must_equal 7
   end
   
@@ -1263,12 +1261,15 @@ describe "Emulated functions" do
     @ds.get(Sequel.trim(:a)).must_equal nil
     @ds.insert(:a=>'foo')
     @ds.get(Sequel.trim(:a)).must_equal 'foo'
-    # Check behavior with leading/trailing blanks
-    @ds.update(:a=>' foo22 ')
+  end
+
+  it "Sequel.trim should return the string with spaces trimmed from both sides" do
+    @ds.insert(:a=>' foo22 ')
     @ds.get(Sequel.trim(:a)).must_equal 'foo22'
   end
 end
 
+__END__
 describe "Dataset replace" do
   before do
     DB.create_table!(:items){Integer :id, :unique=>true; Integer :value}
