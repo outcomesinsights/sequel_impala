@@ -1,0 +1,34 @@
+= sequel-impala
+
+sequel-impala adds support for Sequel to connect to the Impala database
+via the jdbc-hive2 driver under JRuby.  It does not currently support the
++impala+ ruby gem, but if the +impala+ gem is updated to work with modern
+versions of Impala, it is possible support could be added.
+
+= Source Code
+
+Source code is available on GitHub at https://github.com/jeremyevans/sequel-impala
+
+= Usage
+
+After installation, Sequel will automatically pick up the adapter as long as
+the lib directory is in RUBYLIB, if you use a connection string starting with
+<tt>jdbc:hive2</tt>
+
+= Dependencies
+
+* sequel 4+
+* jdbc-hive2
+
+Note that in order for inserts to work, you need an updated version of
+jdbc-hive2 not yet available as a gem.  See https://github.com/mode/jdbc-hive2/pull/1
+
+= License
+
+MIT
+
+= Author
+
+Jeremy Evans <code@jeremyevans.net>
+
+Work on sequel-impala is generously funded by Outcomes Insights, Inc.
