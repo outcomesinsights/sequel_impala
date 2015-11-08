@@ -11,12 +11,37 @@ module Sequel
     module DatabaseMethods
       extend Invalid
 
+      def create_join_table(hash, options=OPTS)
+        keys = hash.keys.sort_by(&:to_s)
+        create_table(join_table_name(hash, options), options) do
+          keys.each do |key|
+            Integer key
+          end
+        end
+      end
+
       def database_type
         :impala
       end
 
+      def serial_primary_key_options
+        {:type=>Integer}
+      end
+
       def supports_create_table_if_not_exists?
         true
+      end
+
+      def supports_foreign_key_parsing?
+        false
+      end
+
+      def supports_index_parsing?
+        false
+      end
+
+      def views(opts=OPTS)
+        tables(opts)
       end
 
       def transaction(opts=OPTS)
@@ -25,11 +50,30 @@ module Sequel
         end
       end
 
-      def serial_primary_key_options
-        {:type=>Integer}
+      private
+
+      def alter_table_add_column_sql(table, op)
+        "ADD COLUMNS (#{column_definition_sql(op)})"
       end
 
-      private
+      def alter_table_change_column_sql(table, op)
+        o = op[:op]
+        opts = schema(table).find{|x| x.first == op[:name]}
+        opts = opts ? opts.last.dup : {}
+        opts[:name] = o == :rename_column ? op[:new_name] : op[:name]
+        opts[:type] = o == :set_column_type ? op[:type] : opts[:db_type]
+        opts.delete(:primary_key)
+        opts.delete(:default)
+        opts.delete(:null)
+        opts.delete(:allow_null)
+        unless op[:type] || opts[:type]
+          raise Error, "cannot determine database type to use for CHANGE COLUMN operation"
+        end
+        opts = op.merge(opts)
+        "CHANGE #{quote_identifier(op[:name])} #{column_definition_sql(opts)}"
+      end
+      alias alter_table_rename_column_sql alter_table_change_column_sql
+      alias alter_table_set_column_type_sql alter_table_change_column_sql
 
       def identifier_input_method_default
         nil
@@ -39,8 +83,29 @@ module Sequel
         nil
       end
 
+      def metadata_dataset
+        @metadata_dataset ||= (
+          ds = dataset;
+          ds.identifier_input_method = identifier_input_method_default;
+          ds.identifier_output_method = :downcase;
+          ds
+        )
+      end
+
+      def type_literal_generic_float(column)
+        :double
+      end
+
+      def type_literal_generic_numeric(column)
+        column[:size] ? "decimal(#{Array(column[:size]).join(', ')})" : :decimal
+      end
+
       def type_literal_generic_string(column)
-        'string'
+        if size = column[:size]
+          "#{'var' unless column[:fixed]}char(#{size})"
+        else
+          :string
+        end
       end
     end
 
