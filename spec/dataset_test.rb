@@ -150,8 +150,6 @@ describe "Simple Dataset operations" do
 
   it "should raise InvalidOperation for unsupported statements" do
     proc{@ds.update(:number=>40)}.must_raise Sequel::InvalidOperation
-    proc{@ds.delete}.must_raise Sequel::InvalidOperation
-    proc{@ds.truncate}.must_raise Sequel::InvalidOperation
   end
   
   it "should iterate over records as they come in" do
@@ -305,7 +303,7 @@ describe Sequel::Dataset do
     @d.count.must_equal 2
     @d.avg(:value).to_i.must_equal 289
     @d.min(:value).to_i.must_equal 123
-    @d.reverse.min(:value).to_i.must_equal 123
+    @d.reverse(:value).min(:value).to_i.must_equal 456
     @d.max(:value).to_i.must_equal 456
     @d.sum(:value).to_i.must_equal 579
     @d.interval(:value).to_i.must_equal 333
