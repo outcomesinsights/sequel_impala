@@ -3,6 +3,31 @@ require File.join(File.dirname(File.expand_path(__FILE__)), 'spec_helper.rb')
 describe "Impala dataset" do
   before do
     @db = DB
+    @db.create_table!(:items) do
+      Integer :id
+      Integer :number
+      String :name
+    end
+    @ds = @db[:items].order(:id)
+    @ds.insert(1, 10, 'a')
+  end
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it "#update should emulate UPDATE" do
+    @ds.update(:number=>20, :name=>'b')
+    @ds.all.must_equal [{:id=>1, :number=>20, :name=>'b'}]
+    @ds.where(:id=>1).update(:number=>30, :name=>'c')
+    @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
+    @ds.where(:id=>2).update(:number=>40, :name=>'d')
+    @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
+  end
+end
+
+describe "Impala dataset" do
+  before do
+    @db = DB
     @db.create_table!(:items){Integer :number}
     @ds = @db[:items]
     @ds.insert(1)

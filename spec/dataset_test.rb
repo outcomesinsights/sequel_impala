@@ -148,10 +148,6 @@ describe "Simple Dataset operations" do
     @ds.from_self(:alias=>:items).graph(@ds.from_self, {:id=>:id}, :table_alias=>:b).extension(:graph_each).all.must_equal [{:items=>{:id=>1, :number=>10}, :b=>{:id=>1, :number=>10}}]
   end
 
-  it "should raise InvalidOperation for unsupported statements" do
-    proc{@ds.update(:number=>40)}.must_raise Sequel::InvalidOperation
-  end
-  
   it "should iterate over records as they come in" do
     called = false
     @ds.each{|row| called = true; row.must_equal(:id=>1, :number=>10)}

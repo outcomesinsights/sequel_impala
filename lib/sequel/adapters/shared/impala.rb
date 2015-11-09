@@ -176,8 +176,6 @@ module Sequel
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
 
-      invalid :update, "Impala does not support UPDATE"
-
       def complex_expression_sql_append(sql, op, args)
         case op
         when :'||'
@@ -286,6 +284,42 @@ module Sequel
 
       def to_parquet(table, options=OPTS)
         db.create_table(table, options.merge(:as=>self, :stored_as=>:parquet))
+      end
+
+      def update(values=OPTS)
+        super
+        nil
+      end
+
+      def update_sql(values)
+        sql = "INSERT OVERWRITE "
+        source_list_append(sql, opts[:from])
+        sql << " SELECT "
+        comma = false
+
+        if where = opts[:where]
+          where = Sequel.lit(literal(where))
+        else
+          where = true
+        end
+
+        select_all.columns.each do |c|
+          if comma
+            sql <<  comma
+          else
+            comma = ', '
+          end
+
+          if values.has_key?(c)
+            new_value = values[c]
+            literal_append(sql, Sequel.case({where=>new_value}, c).as(c))
+          else
+            quote_identifier_append(sql, c)
+          end
+        end
+        sql << " FROM "
+        source_list_append(sql, opts[:from])
+        sql
       end
 
       private
