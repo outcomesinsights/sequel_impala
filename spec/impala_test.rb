@@ -28,3 +28,30 @@ describe "Impala dataset" do
     @ds.count.must_equal 0
   end
 end
+
+describe "Impala string comparisons" do
+  before do
+    @db = DB
+    @db.create_table!(:items){String :name}
+    @ds = @db[:items]
+    @ds.insert('m')
+  end
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it "should work for equality and inequality" do
+    @ds.where(:name => 'm').all.must_equal [{:name=>'m'}]
+    @ds.where(:name => 'j').all.must_equal []
+    @ds.exclude(:name => 'j').all.must_equal [{:name=>'m'}]
+    @ds.exclude(:name => 'm').all.must_equal []
+    @ds.where{name > 'l'}.all.must_equal [{:name=>'m'}]
+    @ds.where{name > 'm'}.all.must_equal []
+    @ds.where{name < 'n'}.all.must_equal [{:name=>'m'}]
+    @ds.where{name < 'm'}.all.must_equal []
+    @ds.where{name >= 'm'}.all.must_equal [{:name=>'m'}]
+    @ds.where{name >= 'n'}.all.must_equal []
+    @ds.where{name <= 'm'}.all.must_equal [{:name=>'m'}]
+    @ds.where{name <= 'l'}.all.must_equal []
+  end
+end
