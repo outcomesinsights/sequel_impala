@@ -48,14 +48,18 @@ module Sequel
         false
       end
 
-      def views(opts=OPTS)
-        tables(opts)
+      def tables(opts=OPTS)
+        super.select{|t| is_valid_table?(t)}
       end
 
       def transaction(opts=OPTS)
         synchronize(opts[:server]) do |c|
           yield c
         end
+      end
+
+      def views(opts=OPTS)
+        get_tables('TABLE', opts).reject{|t| is_valid_table?(t)}
       end
 
       private
@@ -121,6 +125,13 @@ module Sequel
      
       def identifier_output_method_default
         nil
+      end
+
+      def is_valid_table?(t)
+        DB.run("SHOW TABLE STATS #{literal(t)}")
+        true
+      rescue Sequel::DatabaseError
+        false
       end
 
       def metadata_dataset

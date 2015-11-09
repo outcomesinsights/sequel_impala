@@ -297,11 +297,13 @@ describe "Database#tables" do
       end
     end
     @db = DB
-    @db.create_table(:sequel_test_table){Integer :a}
+    @db.create_table!(:sequel_test_table){Integer :a}
+    @db.create_view :sequel_test_view, @db[:sequel_test_table]
   end
   after do
     @db.identifier_output_method = nil
     @db.identifier_input_method = nil
+    @db.drop_view :sequel_test_view
     @db.drop_table :sequel_test_table
   end
 
@@ -310,6 +312,7 @@ describe "Database#tables" do
     ts.must_be_kind_of(Array)
     ts.each{|t| t.must_be_kind_of(Symbol)}
     ts.must_include(:sequel_test_table)
+    ts.wont_include(:sequel_test_view)
   end
 
   it "should respect the database's identifier_output_method" do
@@ -328,7 +331,7 @@ describe "Database#views" do
       end
     end
     @db = DB
-    @db.create_table(:sequel_test_table){Integer :a}
+    @db.create_table!(:sequel_test_table){Integer :a}
     @db.create_view :sequel_test_view, @db[:sequel_test_table]
   end
   after do
@@ -343,6 +346,7 @@ describe "Database#views" do
     ts.must_be_kind_of(Array)
     ts.each{|t| t.must_be_kind_of(Symbol)}
     ts.must_include(:sequel_test_view)
+    ts.wont_include(:sequel_test_table)
   end
 
   it "should respect the database's identifier_output_method" do
