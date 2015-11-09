@@ -75,6 +75,30 @@ module Sequel
       alias alter_table_rename_column_sql alter_table_change_column_sql
       alias alter_table_set_column_type_sql alter_table_change_column_sql
 
+      # DDL statement for creating a table from the result of a SELECT statement.
+      # +sql+ should be a string representing a SELECT query.
+      def create_table_as_sql(name, sql, options)
+        "#{create_table_prefix_sql(name, options)}#{create_table_parameters_sql(options) } AS #{sql}"
+      end
+
+      # DDL fragment for initial part of CREATE TABLE statement
+      def create_table_prefix_sql(name, options)
+        "CREATE #{'EXTERNAL ' if options[:external]}TABLE#{' IF NOT EXISTS' if options[:if_not_exists]} #{quote_schema_table(name)}"
+      end
+
+      def create_table_sql(name, generator, options)
+        sql = super
+        sql << create_table_parameters_sql(options)
+        sql
+      end
+
+      def create_table_parameters_sql(options)
+        sql = ""
+        sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
+        sql << " LOCATION #{literal(options[:location])}" if options[:location]
+        sql
+      end
+
       def identifier_input_method_default
         nil
       end
@@ -231,6 +255,10 @@ module Sequel
 
       def supports_window_functions?
         true
+      end
+
+      def to_parquet(table, options=OPTS)
+        db.create_table(table, options.merge(:as=>self, :stored_as=>:parquet))
       end
 
       private

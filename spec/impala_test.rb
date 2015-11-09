@@ -82,3 +82,36 @@ describe "Impala date manipulation functions" do
     @ds.get(Sequel.date_sub(:t, :days=>1)).to_date.must_equal(Date.today-1)
   end
 end
+
+describe "Impala create_table options" do
+  it "should produce correct sql" do
+    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :external=>true).must_equal 'CREATE EXTERNAL TABLE `t` ()'
+    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :stored_as=>:parquet).must_equal 'CREATE TABLE `t` () STORED AS parquet'
+    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :location=>'/a/b').must_equal "CREATE TABLE `t` () LOCATION '/a/b'"
+  end
+end
+
+describe "Impala parquet support" do
+  before do
+    @db = DB
+  end
+  after do
+    @db.drop_table?(:items)
+    @db.drop_table?(:items2)
+  end
+
+  it "should support parquet format using create_table :stored_as option" do
+    @db.create_table!(:items, :stored_as=>:parquet){Integer :number}
+    @ds = @db[:items]
+    @ds.insert(1)
+    @ds.all.must_equal [{:number=>1}]
+  end
+
+  it "should support parquet format via Dataset#to_parquet" do
+    @db.create_table!(:items){Integer :number}
+    @ds = @db[:items]
+    @ds.insert(1)
+    @ds.to_parquet(:items2)
+    @db[:items2].all.must_equal [{:number=>1}]
+  end
+end
