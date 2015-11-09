@@ -68,11 +68,17 @@ describe "Impala date manipulation functions" do
   end
 
   it "date_add should work correctly" do
-    @ds.get{date_add(t, 0)}.to_date.must_equal (Date.today)
-    @ds.get{date_add(t, Sequel.lit('interval 0 days'))}.to_date.must_equal (Date.today)
-    @ds.get{date_add(t, 1)}.to_date.must_equal (Date.today+1)
-    @ds.get{date_add(t, Sequel.lit('interval 1 day'))}.to_date.must_equal (Date.today+1)
-    @ds.get{date_add(t, -1)}.to_date.must_equal (Date.today-1)
-    @ds.get{date_add(t, Sequel.lit('interval -1 day'))}.to_date.must_equal (Date.today-1)
+    @ds.get{date_add(t, 0)}.to_date.must_equal Date.today
+    @ds.get{date_add(t, Sequel.lit('interval 0 days'))}.to_date.must_equal Date.today
+    @ds.get{date_add(t, 1)}.to_date.must_equal(Date.today+1)
+    @ds.get{date_add(t, Sequel.lit('interval 1 day'))}.to_date.must_equal(Date.today+1)
+    @ds.get{date_add(t, -1)}.to_date.must_equal(Date.today-1)
+    @ds.get{date_add(t, Sequel.lit('interval -1 day'))}.to_date.must_equal(Date.today-1)
+  end
+
+  it "should work with Sequel date_arithmetic extension" do
+    @ds.extension!(:date_arithmetic)
+    @ds.get(Sequel.date_add(:t, :days=>1)).to_date.must_equal(Date.today+1)
+    @ds.get(Sequel.date_sub(:t, :days=>1)).to_date.must_equal(Date.today-1)
   end
 end

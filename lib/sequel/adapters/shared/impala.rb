@@ -156,6 +156,21 @@ module Sequel
         sql << CONSTANT_LITERAL_MAP.fetch(constant, constant.to_s)
       end
 
+      def date_add_sql_append(sql, da)
+        h = da.interval
+        expr = da.expr
+        intervals = []
+        each_valid_interval_unit(h, Sequel::SQL::DateAdd::DatasetMethods::DEF_DURATION_UNITS) do |value, sql_unit|
+          intervals << Sequel.lit("INTERVAL #{value} #{sql_unit}")
+        end
+        if intervals.empty?
+          return literal_append(sql, Sequel.cast(expr, Time))
+        else
+          intervals.unshift(Sequel.cast(expr, Time))
+          return complex_expression_sql_append(sql, :+, intervals)
+        end
+      end
+
       def delete
         super
         nil
