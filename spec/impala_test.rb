@@ -115,3 +115,27 @@ describe "Impala parquet support" do
     @db[:items2].all.must_equal [{:number=>1}]
   end
 end
+
+describe "Impala create/drop schemas" do
+  it "should use correct SQL" do
+    DB.send(:create_schema_sql, :s1, {}).must_equal "CREATE SCHEMA `s1`"
+    DB.send(:create_schema_sql, :s1, :if_not_exists=>true).must_equal "CREATE SCHEMA IF NOT EXISTS `s1`"
+    DB.send(:create_schema_sql, :s1, :location=>'/a/b').must_equal "CREATE SCHEMA `s1` LOCATION '/a/b'"
+
+    DB.send(:drop_schema_sql, :s1, {}).must_equal "DROP SCHEMA `s1`"
+    DB.send(:drop_schema_sql, :s1, :if_exists=>true).must_equal "DROP SCHEMA IF EXISTS `s1`"
+  end
+
+  it "should support create_schema and drop_schema" do
+    DB.create_schema(:s1)
+    DB.create_schema(:s1, :if_not_exists=>true)
+    proc{DB.create_schema(:s1)}.must_raise Sequel::DatabaseError
+    DB.create_table(:s1__items){Integer :number}
+    DB[:s1__items].insert(1)
+    DB[:s1__items].all.must_equal [{:number=>1}]
+    DB.drop_table(:s1__items)
+    DB.drop_schema(:s1)
+    proc{DB.drop_schema(:s1)}.must_raise Sequel::DatabaseError
+    DB.drop_schema(:s1, :if_exists=>true)
+  end
+end

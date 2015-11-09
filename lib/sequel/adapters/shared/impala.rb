@@ -20,8 +20,16 @@ module Sequel
         end
       end
 
+      def create_schema(schema, options=OPTS)
+        run(create_schema_sql(schema, options))
+      end
+
       def database_type
         :impala
+      end
+
+      def drop_schema(schema, options=OPTS)
+        run(drop_schema_sql(schema, options))
       end
 
       def serial_primary_key_options
@@ -75,6 +83,10 @@ module Sequel
       alias alter_table_rename_column_sql alter_table_change_column_sql
       alias alter_table_set_column_type_sql alter_table_change_column_sql
 
+      def create_schema_sql(schema, options)
+        "CREATE SCHEMA #{'IF NOT EXISTS ' if options[:if_not_exists]}#{quote_identifier(schema)}#{" LOCATION #{literal(options[:location])}" if options[:location]}"
+      end
+
       # DDL statement for creating a table from the result of a SELECT statement.
       # +sql+ should be a string representing a SELECT query.
       def create_table_as_sql(name, sql, options)
@@ -97,6 +109,10 @@ module Sequel
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
+      end
+
+      def drop_schema_sql(schema, options)
+        "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}"
       end
 
       def identifier_input_method_default
