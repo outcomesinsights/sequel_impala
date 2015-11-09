@@ -64,35 +64,10 @@ describe "Supported types" do
     ds.all.must_equal [{:name=>'Test User'}]
   end
   
-  it "should support generic text type" do
-    ds = create_items_table_with_column(:name, String, :text=>true)
-    ds.insert(:name => 'Test User'*100)
-    ds.all.must_equal [{:name=>'Test User'*100}]
-
-    ds.update(:name=>ds.get(:name))
-    ds.all.must_equal [{:name=>'Test User'*100}]
-  end
-  
-  it "should support generic date type" do
-    ds = create_items_table_with_column(:dat, Date)
-    d = Date.today
-    ds.insert(:dat => d)
-    ds.first[:dat].must_be_kind_of(Date)
-    ds.first[:dat].to_s.must_equal d.to_s
-  end
-  
-  it "should support generic time type" do
-    ds = create_items_table_with_column(:tim, Time, :only_time=>true)
-    t = Sequel::SQLTime.now
-    ds.insert(:tim => t)
-    v = ds.first[:tim]
-    ds.literal(v).must_equal ds.literal(t)
-    v.must_be_kind_of(Sequel::SQLTime)
-    ds.delete
-    ds.insert(:tim => v)
-    v2 = ds.first[:tim]
-    ds.literal(v2).must_equal ds.literal(t)
-    v2.must_be_kind_of(Sequel::SQLTime)
+  it "should support generic string type with size" do
+    ds = create_items_table_with_column(:name, String, :size=>100)
+    ds.insert(:name => Sequel.cast('Test User', 'varchar(100)'))
+    ds.all.must_equal [{:name=>'Test User'}]
   end
   
   it "should support generic datetime type" do
@@ -106,13 +81,6 @@ describe "Supported types" do
     ds.first[:tim].strftime('%Y%m%d%H%M%S').must_equal t.strftime('%Y%m%d%H%M%S')
   end
   
-  it "should support generic file type" do
-    ds = create_items_table_with_column(:name, File)
-    ds.insert(:name =>Sequel.blob("a\0"*300))
-    ds.all.must_equal [{:name=>Sequel.blob("a\0"*300)}]
-    ds.first[:name].must_be_kind_of(::Sequel::SQL::Blob)
-  end
-  
   it "should support generic boolean type" do
     ds = create_items_table_with_column(:number, TrueClass)
     ds.insert(:number => true)
@@ -120,14 +88,5 @@ describe "Supported types" do
     ds = create_items_table_with_column(:number, FalseClass)
     ds.insert(:number => true)
     ds.all.must_equal [{:number=>true}]
-  end
-  
-  it "should support generic boolean type with defaults" do
-    ds = create_items_table_with_column(:number, TrueClass, :default=>true)
-    ds.insert
-    ds.all.must_equal [{:number=>true}]
-    ds = create_items_table_with_column(:number, FalseClass, :default=>false)
-    ds.insert
-    ds.all.must_equal [{:number=>false}]
   end
 end
