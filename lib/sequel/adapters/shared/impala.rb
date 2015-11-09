@@ -126,8 +126,6 @@ module Sequel
       REGEXP = ' REGEXP '.freeze
 
       invalid :update, "Impala does not support UPDATE"
-      invalid :delete, "Impala does not support DELETE"
-      invalid :truncate, "Impala does not support TRUNCATE or DELETE"
 
       def complex_expression_sql_append(sql, op, args)
         case op
@@ -156,6 +154,32 @@ module Sequel
 
       def constant_sql_append(sql, constant)
         sql << CONSTANT_LITERAL_MAP.fetch(constant, constant.to_s)
+      end
+
+      def delete
+        super
+        nil
+      end
+
+      def delete_sql
+        sql = "INSERT OVERWRITE "
+        source_list_append(sql, opts[:from])
+        sql << " SELECT * FROM "
+        source_list_append(sql, opts[:from])
+        if where = opts[:where]
+          sql << " WHERE NOT ("
+          literal_append(sql, where)
+          sql << ")"
+        else
+          sql << " WHERE false"
+        end
+        sql
+      end
+
+      def truncate_sql
+        ds = clone
+        ds.opts.delete(:where)
+        ds.delete_sql
       end
 
       def empty?
