@@ -55,3 +55,24 @@ describe "Impala string comparisons" do
     @ds.where{name <= 'l'}.all.must_equal []
   end
 end
+
+describe "Impala date manipulation functions" do
+  before do
+    @db = DB
+    @db.create_table!(:items){Time :t}
+    @ds = @db[:items]
+    @ds.insert(Date.today)
+  end
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it "date_add should work correctly" do
+    @ds.get{date_add(t, 0)}.to_date.must_equal (Date.today)
+    @ds.get{date_add(t, Sequel.lit('interval 0 days'))}.to_date.must_equal (Date.today)
+    @ds.get{date_add(t, 1)}.to_date.must_equal (Date.today+1)
+    @ds.get{date_add(t, Sequel.lit('interval 1 day'))}.to_date.must_equal (Date.today+1)
+    @ds.get{date_add(t, -1)}.to_date.must_equal (Date.today-1)
+    @ds.get{date_add(t, Sequel.lit('interval -1 day'))}.to_date.must_equal (Date.today-1)
+  end
+end
