@@ -1,16 +1,6 @@
 module Sequel
   module Impala
-    module Invalid
-      def invalid(meth, msg)
-        define_method(meth) do |*|
-          raise InvalidOperation, msg
-        end
-      end
-    end
-
     module DatabaseMethods
-      extend Invalid
-
       def create_join_table(hash, options=OPTS)
         keys = hash.keys.sort_by(&:to_s)
         create_table(join_table_name(hash, options), options) do
@@ -161,8 +151,6 @@ module Sequel
     end
 
     module DatasetMethods
-      extend Invalid
-
       BACKTICK = '`'.freeze
       APOS = "'".freeze
       STRING_ESCAPE_RE = /([\\'])/
