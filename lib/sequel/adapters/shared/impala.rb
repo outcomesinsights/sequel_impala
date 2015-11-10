@@ -1,6 +1,8 @@
 module Sequel
   module Impala
     module DatabaseMethods
+      # Do not use a composite primary key, foreign keys, or an
+      # index when creating a join table, as Impala doesn't support those.
       def create_join_table(hash, options=OPTS)
         keys = hash.keys.sort_by(&:to_s)
         create_table(join_table_name(hash, options), options) do
@@ -10,54 +12,106 @@ module Sequel
         end
       end
 
+      # Create a database/schema in Imapala.
+      #
+      # Options:
+      # :if_not_exists :: Don't raise an error if the schema already exists.
+      # :location :: Set the file system location to store the data for tables
+      #              in the created schema.
+      #
+      # Examples:
+      #
+      #   create_schema(:s)
+      #   # CREATE SCHEMA `s`
+      #
+      #   create_schema(:s, :if_not_exists=>true)
+      #   # CREATE SCHEMA IF NOT EXISTS `s`
+      #
+      #   create_schema(:s, :location=>'/a/b')
+      #   # CREATE SCHEMA `s` LOCATION '/a/b'
       def create_schema(schema, options=OPTS)
         run(create_schema_sql(schema, options))
       end
 
+      # Set the database_type for this database to :impala.
       def database_type
         :impala
       end
 
+      # Drop a database/schema from Imapala.
+      #
+      # Options:
+      # :if_exists :: Don't raise an error if the schema doesn't exist.
+      #
+      # Examples:
+      #
+      #   drop_schema(:s)
+      #   # DROP SCHEMA `s`
+      #
+      #   create_schema(:s, :if_exists=>true)
+      #   # DROP SCHEMA IF EXISTS `s`
       def drop_schema(schema, options=OPTS)
         run(drop_schema_sql(schema, options))
       end
 
+      # Don't use PRIMARY KEY or AUTOINCREMENT on Impala, as Impala doesn't
+      # support either.
       def serial_primary_key_options
         {:type=>Integer}
       end
 
+      # Impala supports CREATE TABLE IF NOT EXISTS.
       def supports_create_table_if_not_exists?
         true
       end
 
+      # Impala does not support foreign keys.
       def supports_foreign_key_parsing?
         false
       end
 
+      # Impala does not support indexes.
       def supports_index_parsing?
         false
       end
 
+      # Check that the tables returned by the JDBC driver are actually valid
+      # tables and not views.  The Hive2 JDBC driver returns views when listing
+      # tables and nothing when listing views.
       def tables(opts=OPTS)
         super.select{|t| is_valid_table?(t)}
       end
 
+      # Impala doesn't support transactions, so instead of issuing a
+      # transaction, just checkout a connection.  This ensures the same
+      # connection is used for the transaction block, but as Impala
+      # doesn't support transactions, you can't rollback.
       def transaction(opts=OPTS)
         synchronize(opts[:server]) do |c|
           yield c
         end
       end
 
+      # Determine the available views for listing all tables via JDBC (which
+      # includes both tables and views), and removing all valid tables.
       def views(opts=OPTS)
         get_tables('TABLE', opts).reject{|t| is_valid_table?(t)}
       end
 
       private
 
+      # Impala uses ADD COLUMNS instead of ADD COLUMN.  As its use of
+      # ADD COLUMNS implies, it supports adding multiple columns at once,
+      # but this adapter doesn't offer an API for that.
       def alter_table_add_column_sql(table, op)
         "ADD COLUMNS (#{column_definition_sql(op)})"
       end
 
+      # Impala uses CHANGE instead of having separate ALTER TABLE
+      # options for renaming tables and changing their types.  This
+      # makes it more difficult to rename a column without knowing the
+      # type.  To handle renames, look at the metadata to determine
+      # the type of the column.
       def alter_table_change_column_sql(table, op)
         o = op[:op]
         opts = schema(table).find{|x| x.first == op[:name]}
@@ -81,13 +135,12 @@ module Sequel
         "CREATE SCHEMA #{'IF NOT EXISTS ' if options[:if_not_exists]}#{quote_identifier(schema)}#{" LOCATION #{literal(options[:location])}" if options[:location]}"
       end
 
-      # DDL statement for creating a table from the result of a SELECT statement.
-      # +sql+ should be a string representing a SELECT query.
+      # Support using table parameters for CREATE TABLE AS, necessary for
+      # creating parquet files from datasets.
       def create_table_as_sql(name, sql, options)
         "#{create_table_prefix_sql(name, options)}#{create_table_parameters_sql(options) } AS #{sql}"
       end
 
-      # DDL fragment for initial part of CREATE TABLE statement
       def create_table_prefix_sql(name, options)
         "CREATE #{'EXTERNAL ' if options[:external]}TABLE#{' IF NOT EXISTS' if options[:if_not_exists]} #{quote_schema_table(name)}"
       end
@@ -109,14 +162,17 @@ module Sequel
         "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}"
       end
 
+      # Impala folds identifiers to lowercase, quoted or not, and is actually
+      # case insensitive, so don't use an identifier input or output method.
       def identifier_input_method_default
         nil
       end
-     
       def identifier_output_method_default
         nil
       end
 
+      # SHOW TABLE STATS will raise an error if given a view and not a table,
+      # so use that to differentiate tables from views.
       def is_valid_table?(t)
         DB.run("SHOW TABLE STATS #{literal(t)}")
         true
@@ -124,6 +180,8 @@ module Sequel
         false
       end
 
+      # Metadata queries on JDBC use uppercase keys, so set the identifier
+      # output method to downcase so that metadata queries work correctly.
       def metadata_dataset
         @metadata_dataset ||= (
           ds = dataset;
@@ -133,14 +191,22 @@ module Sequel
         )
       end
 
+      # Impala uses double instead of "double precision" for floating point
+      # values.
       def type_literal_generic_float(column)
         :double
       end
 
+      # Impala uses decimal instead of numeric for arbitrary precision
+      # numeric values.
       def type_literal_generic_numeric(column)
         column[:size] ? "decimal(#{Array(column[:size]).join(', ')})" : :decimal
       end
 
+      # Use char or varchar if given a size, otherwise use string.
+      # Using a size is not recommend, as Impala doesn't implicitly
+      # cast string values to char or varchar, and doesn't implicitly
+      # cast from different sizes of varchar.
       def type_literal_generic_string(column)
         if size = column[:size]
           "#{'var' unless column[:fixed]}char(#{size})"
@@ -164,6 +230,11 @@ module Sequel
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
 
+      # Handle string concatenation using the concat string function.
+      # Don't use the ESCAPE syntax when using LIKE/NOT LIKE, as
+      # Impala doesn't support escaping LIKE metacharacters.
+      # Support regexps on Impala using the REGEXP operator.
+      # For cast insensitive regexps, cast both values to uppercase first.
       def complex_expression_sql_append(sql, op, args)
         case op
         when :'||'
@@ -189,10 +260,15 @@ module Sequel
         end
       end
 
+      # Use now() for current timestamp, as Impala doesn't support
+      # CURRENT_TIMESTAMP.
       def constant_sql_append(sql, constant)
         sql << CONSTANT_LITERAL_MAP.fetch(constant, constant.to_s)
       end
 
+      # Use the addition operator combined with interval types to
+      # handle date arithmetic when using the date_arithmetic
+      # extension.
       def date_add_sql_append(sql, da)
         h = da.interval
         expr = da.expr
@@ -208,11 +284,15 @@ module Sequel
         end
       end
 
+      # DELETE is emulated on Impala and doesn't return the number of
+      # modified rows.
       def delete
         super
         nil
       end
 
+      # Emulate DELETE using INSERT OVERWRITE selecting all columns from
+      # the table, with a reversed condition used for WHERE.
       def delete_sql
         sql = "INSERT OVERWRITE "
         source_list_append(sql, opts[:from])
@@ -228,57 +308,89 @@ module Sequel
         sql
       end
 
+      # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns
+      # from the table, with WHERE false.
       def truncate_sql
         ds = clone
         ds.opts.delete(:where)
         ds.delete_sql
       end
 
+      # Don't remove an order, because that breaks things when offsets
+      # are used, as Impala requires an order when using an offset.
       def empty?
         get(Sequel::SQL::AliasedExpression.new(1, :one)).nil?
       end
 
+      # Impala does not support INSERT DEFAULT VALUES.
       def insert_supports_empty_values?
         false
       end
 
+      # Impala supports non-recursive common table expressions.
       def supports_cte?(type=:select)
         true
       end
       
+      # Impala doesn't support derived column lists when aliasing
+      # tables.
       def supports_derived_column_lists?
         false
       end
 
+      # Impala doesn't support INTERSECT or EXCEPT.
       def supports_intersect_except?
         false
       end
 
+      # Impala only support IS NULL, not IS TRUE or IS FALSE.
       def supports_is_true?
         false
       end
     
+      # Impala doesn't support IN when used with multiple columns.
       def supports_multiple_column_in?
         false
       end
 
+      # Impala supports regexps using the REGEXP operator.
       def supports_regexp?
         true
       end
 
+      # Impala supports window functions.
       def supports_window_functions?
         true
       end
 
+      # Create a parquet file from this dataset.  +table+ should
+      # be the table name to create.  To specify a path for the
+      # parquet file, use the :location option.
+      #
+      # Examples:
+      #
+      #   DB[:t].to_parquet(:p)
+      #   # CREATE TABLE `p` STORED AS parquet AS
+      #   # SELECT * FROM `t`
+      #
+      #   DB[:t].to_parquet(:p, :location=>'/a/b')
+      #   # CREATE TABLE `p` STORED AS parquet LOCATION '/a/b'
+      #   # SELECT * FROM `t`
       def to_parquet(table, options=OPTS)
         db.create_table(table, options.merge(:as=>self, :stored_as=>:parquet))
       end
 
+      # UPDATE is emulated on Impala, and returns nil instead of the number of
+      # modified rows
       def update(values=OPTS)
         super
         nil
       end
 
+      # Emulate UPDATE using INSERT OVERWRITE AS SELECT.  For all columns used
+      # in the given +values+, use a CASE statement.  In the CASE statement,
+      # set the value to the new value if the row matches WHERE conditions of
+      # the current dataset, otherwise use the existing value.
       def update_sql(values)
         sql = "INSERT OVERWRITE "
         source_list_append(sql, opts[:from])
@@ -312,6 +424,8 @@ module Sequel
 
       private
 
+      # Impala doesn't handle the DEFAULT keyword used in inserts, as all default
+      # values in Impala are NULL, so just use a NULL value.
       def insert_empty_columns_values
         [[columns.last], [nil]]
       end
@@ -324,14 +438,20 @@ module Sequel
         BOOL_FALSE
       end
 
+      # Double backslashes in all strings, and escape all apostrophes with
+      # backslashes.
       def literal_string_append(sql, s)
         sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE, STRING_ESCAPE_REPLACE) << APOS 
       end
 
+      # Impala doesn't support esacping of identifiers, so you can't use backtick in
+      # an identifier name.
       def quoted_identifier_append(sql, name)
         sql << BACKTICK << name.to_s << BACKTICK
       end
 
+      # Don't include a LIMIT clause if there is no FROM clause.  In general,
+      # such queries can only return 1 row.
       def select_limit_sql(sql)
         return unless opts[:from]
         super
