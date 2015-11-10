@@ -21,4 +21,5 @@ END
   s.add_development_dependency("minitest", '>=5.7.0')
   s.add_development_dependency("minitest-hooks")
   s.add_development_dependency("minitest-shared_description")
+  s.add_development_dependency("activesupport")
 end
