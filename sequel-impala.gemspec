@@ -17,4 +17,8 @@ for connecting to Impala.
 END
   s.add_dependency('sequel')
   s.add_dependency('jdbc-hive2')
+  s.add_development_dependency('rake')
+  s.add_development_dependency("minitest", '>=5.7.0')
+  s.add_development_dependency("minitest-hooks")
+  s.add_development_dependency("minitest-shared_description")
 end
