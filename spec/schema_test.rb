@@ -98,6 +98,8 @@ describe "Database schema parser" do
     DB.schema(:items).first.last[:type].must_equal :datetime
     DB.create_table!(:items){DateTime :number}
     DB.schema(:items).first.last[:type].must_equal :datetime
+    DB.create_table!(:items){Date :number}
+    DB.schema(:items).first.last[:type].must_equal :datetime
     DB.create_table!(:items){TrueClass :number}
     DB.schema(:items).first.last[:type].must_equal :boolean
     DB.create_table!(:items){FalseClass :number}

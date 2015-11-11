@@ -218,6 +218,12 @@ module Sequel
         )
       end
 
+      # Impala doesn't support date columns yet, so use timestamp until date
+      # is natively supported.
+      def type_literal_generic_date(column)
+        :timestamp
+      end
+
       # Impala uses double instead of "double precision" for floating point
       # values.
       def type_literal_generic_float(column)

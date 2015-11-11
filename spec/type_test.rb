@@ -81,6 +81,13 @@ describe "Supported types" do
     ds.first[:tim].strftime('%Y%m%d%H%M%S').must_equal t.strftime('%Y%m%d%H%M%S')
   end
   
+  it "should support generic date type" do
+    ds = create_items_table_with_column(:d, Date)
+    t = Date.today
+    ds.insert(:d => t)
+    ds.first[:d].strftime('%Y%m%d').must_equal t.strftime('%Y%m%d')
+  end
+  
   it "should support generic boolean type" do
     ds = create_items_table_with_column(:number, TrueClass)
     ds.insert(:number => true)
