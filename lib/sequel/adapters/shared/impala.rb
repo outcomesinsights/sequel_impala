@@ -124,29 +124,23 @@ module Sequel
         "ADD COLUMNS (#{column_definition_sql(op)})"
       end
 
-      # Impala uses CHANGE instead of having separate ALTER TABLE
-      # options for renaming tables and changing their types.  This
-      # makes it more difficult to rename a column without knowing the
-      # type.  To handle renames, look at the metadata to determine
-      # the type of the column.
-      def alter_table_change_column_sql(table, op)
-        o = op[:op]
-        opts = schema(table).find{|x| x.first == op[:name]}
-        opts = opts ? opts.last.dup : {}
-        opts[:name] = o == :rename_column ? op[:new_name] : op[:name]
-        opts[:type] = o == :set_column_type ? op[:type] : opts[:db_type]
-        opts.delete(:primary_key)
-        opts.delete(:default)
-        opts.delete(:null)
-        opts.delete(:allow_null)
-        unless op[:type] || opts[:type]
+      # Impala uses CHANGE instead of having separate RENAME syntax
+      # for renaming tables.  As CHANGE requires a type, look up the
+      # type from the database schema.
+      def alter_table_rename_column_sql(table, op)
+        old_name = op[:name]
+        opts = schema(table).find{|x| x.first == old_name}
+        opts = opts ? opts.last : {}
+        unless opts[:db_type]
           raise Error, "cannot determine database type to use for CHANGE COLUMN operation"
         end
-        opts = op.merge(opts)
-        "CHANGE #{quote_identifier(op[:name])} #{column_definition_sql(opts)}"
+        new_col = op.merge(:type=>opts[:db_type], :name=>op[:new_name])
+        "CHANGE #{quote_identifier(old_name)} #{column_definition_sql(new_col)}"
       end
-      alias alter_table_rename_column_sql alter_table_change_column_sql
-      alias alter_table_set_column_type_sql alter_table_change_column_sql
+
+      def alter_table_set_column_type_sql(table, op)
+        "CHANGE #{quote_identifier(op[:name])} #{column_definition_sql(op)}"
+      end
 
       # Add COMMENT when defining the column, if :comment is present.
       def column_definition_comment_sql(sql, column)
