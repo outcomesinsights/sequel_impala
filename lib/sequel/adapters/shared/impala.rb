@@ -38,6 +38,23 @@ module Sequel
         :impala
       end
 
+      # Return the DESCRIBE output for the table, showing table
+      # columns, types, and comments.  If the :formatted option
+      # is given, use DESCRIBE FORMATTED and return a lot more
+      # information about the table.  Both of these return arrays
+      # of hashes.
+      #
+      # Examples:
+      #
+      #   describe(:t)
+      #   # DESCRIBE `t`
+      #
+      #   describe(:t, :formatted=>true)
+      #   # DESCRIBE FORMATTED `t`
+      def describe(table, opts=OPTS)
+        self["DESCRIBE #{'FORMATTED ' if opts[:formatted]} ?", table].all
+      end
+
       # Drop a database/schema from Imapala.
       #
       # Options:
@@ -131,6 +148,15 @@ module Sequel
       alias alter_table_rename_column_sql alter_table_change_column_sql
       alias alter_table_set_column_type_sql alter_table_change_column_sql
 
+      # Add COMMENT when defining the column, if :comment is present.
+      def column_definition_comment_sql(sql, column)
+        sql << " COMMENT #{literal(column[:comment])}" if column[:comment]
+      end
+
+      def column_definition_order
+        [:comment]
+      end
+
       def create_schema_sql(schema, options)
         "CREATE SCHEMA #{'IF NOT EXISTS ' if options[:if_not_exists]}#{quote_identifier(schema)}#{" LOCATION #{literal(options[:location])}" if options[:location]}"
       end
@@ -153,6 +179,7 @@ module Sequel
 
       def create_table_parameters_sql(options)
         sql = ""
+        sql << " COMMENT #{literal(options[:comment])}" if options[:comment]
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql

@@ -1,5 +1,22 @@
 require File.join(File.dirname(File.expand_path(__FILE__)), 'spec_helper.rb')
 
+describe "Impala column/table comments and describe" do
+  before do
+    @db = DB
+  end
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it "should set table and column comments correctly" do
+    @db.create_table!(:items, :comment=>'tab_com') do
+      Integer :i, :comment=>'col_com'
+    end
+    @db.describe(:items).first[:comment].must_equal 'col_com'
+    @db.describe(:items, :formatted=>true).find{|r| r[:type].to_s.strip == 'comment' && r[:name] == ''}[:comment].strip.must_equal 'tab_com'
+  end
+end
+
 describe "Impala dataset" do
   before do
     @db = DB
