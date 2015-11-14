@@ -125,11 +125,31 @@ describe "Impala date manipulation functions" do
   end
 end
 
-describe "Impala create_table options" do
+describe "Impala create_table" do
+  def ct_sql(opts)
+    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, opts)
+  end
+
   it "should produce correct sql" do
-    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :external=>true).must_equal 'CREATE EXTERNAL TABLE `t` ()'
-    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :stored_as=>:parquet).must_equal 'CREATE TABLE `t` () STORED AS parquet'
-    DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, :location=>'/a/b').must_equal "CREATE TABLE `t` () LOCATION '/a/b'"
+    ct_sql(:external=>true).must_equal 'CREATE EXTERNAL TABLE `t` ()'
+    ct_sql(:stored_as=>:parquet).must_equal 'CREATE TABLE `t` () STORED AS parquet'
+    ct_sql(:location=>'/a/b').must_equal "CREATE TABLE `t` () LOCATION '/a/b'"
+    ct_sql(:field_term=>"\b").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b'"
+    ct_sql(:field_term=>"\b", :field_escape=>"\a").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b' ESCAPED BY '\a'"
+    ct_sql(:line_term=>"\001").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED LINES TERMINATED BY '\001'"
+  end
+end
+
+describe "Impala create_table" do
+  before do
+    @db = DB
+  end
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it "should handle row format options" do
+    DB.create_table(:items, :field_term=>"\001", :field_escape=>"\002", :line_term=>"\003"){Integer :a; Integer :b}
   end
 end
 

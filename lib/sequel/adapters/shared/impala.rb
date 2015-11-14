@@ -174,6 +174,16 @@ module Sequel
       def create_table_parameters_sql(options)
         sql = ""
         sql << " COMMENT #{literal(options[:comment])}" if options[:comment]
+        if options[:field_term] || options[:line_term]
+          sql << " ROW FORMAT DELIMITED"
+          if options[:field_term]
+            sql << " FIELDS TERMINATED BY #{literal(options[:field_term])}"
+            sql << " ESCAPED BY #{literal(options[:field_escape])}" if options[:field_escape]
+          end
+          if options[:line_term]
+            sql << " LINES TERMINATED BY #{literal(options[:line_term])}"
+          end
+        end
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
