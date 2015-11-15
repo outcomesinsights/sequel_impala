@@ -4,14 +4,12 @@ describe "Database schema parser" do
   after do
     DB.identifier_output_method = nil
     DB.identifier_input_method = nil
-    DB.quote_identifiers = true
     DB.drop_table?(:items)
   end
 
   it "should handle a database with a identifier methods" do
     DB.identifier_output_method = :reverse
     DB.identifier_input_method = :reverse
-    DB.quote_identifiers = true
     DB.create_table!(:items){Integer :number}
     begin
       DB.schema(:items, :reload=>true).must_be_kind_of(Array)
@@ -24,10 +22,9 @@ describe "Database schema parser" do
   it "should handle a dataset with identifier methods different than the database's" do
     DB.identifier_output_method = :reverse
     DB.identifier_input_method = :reverse
-    DB.quote_identifiers = true
     DB.create_table!(:items){Integer :number}
-    DB.identifier_output_method = @iom
-    DB.identifier_input_method = @iim
+    DB.identifier_output_method = nil
+    DB.identifier_input_method = nil
     ds = DB[:items]
     ds.identifier_output_method = :reverse
     ds.identifier_input_method = :reverse

@@ -12,11 +12,10 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/jeremyevans/sequel-impala"
   s.files = %w(MIT-LICENSE CHANGELOG README.rdoc Rakefile) + Dir["{spec,lib}/**/*.rb"]
   s.description = <<END
-sequel-impala adds an Impala shared adapter and jdbc/hive2 adapter
-for connecting to Impala.
+sequel-impala adds an Impala shared adapter, impala adapter,
+and jdbc/hive2 adapter for connecting to Impala.
 END
   s.add_dependency('sequel')
-  s.add_dependency('jdbc-hive2')
   s.add_development_dependency('rake')
   s.add_development_dependency("minitest", '>=5.7.0')
   s.add_development_dependency("minitest-hooks")

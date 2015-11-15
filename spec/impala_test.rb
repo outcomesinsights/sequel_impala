@@ -134,9 +134,9 @@ describe "Impala syntax" do
     ct_sql(:external=>true).must_equal 'CREATE EXTERNAL TABLE `t` ()'
     ct_sql(:stored_as=>:parquet).must_equal 'CREATE TABLE `t` () STORED AS parquet'
     ct_sql(:location=>'/a/b').must_equal "CREATE TABLE `t` () LOCATION '/a/b'"
-    ct_sql(:field_term=>"\b").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b'"
-    ct_sql(:field_term=>"\b", :field_escape=>"\a").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b' ESCAPED BY '\a'"
-    ct_sql(:line_term=>"\001").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED LINES TERMINATED BY '\001'"
+    ct_sql(:field_term=>"\02").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\02'"
+    ct_sql(:field_term=>"\02", :field_escape=>"\a").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\02' ESCAPED BY '\a'"
+    ct_sql(:line_term=>"\01").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED LINES TERMINATED BY '\01'"
   end
 
   it "should produce correct sql for load_data" do

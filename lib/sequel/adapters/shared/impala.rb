@@ -52,7 +52,14 @@ module Sequel
       #   describe(:t, :formatted=>true)
       #   # DESCRIBE FORMATTED `t`
       def describe(table, opts=OPTS)
-        self["DESCRIBE #{'FORMATTED ' if opts[:formatted]} ?", table].all
+        if ds = opts[:dataset]
+          ds = ds.naked
+        else
+          ds = dataset.clone
+          ds.identifier_input_method = identifier_input_method
+        end
+        ds.identifier_output_method = nil
+        ds.with_sql("DESCRIBE #{'FORMATTED ' if opts[:formatted]} ?", table).all
       end
 
       # Drop a database/schema from Imapala.
@@ -166,7 +173,7 @@ module Sequel
 
       def _tables(opts)
         m = output_identifier_meth
-        self["SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}"].
+        metadata_dataset.with_sql("SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}").
           select_map(:name).map do |table|
             m.call(table)
           end
@@ -340,6 +347,8 @@ module Sequel
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
       EXCEPT_SOURCE_COLUMN = :__source__
+
+      Dataset.def_sql_method(self, :select, %w'with select distinct columns from join where group having compounds order limit')
 
       # Handle string concatenation using the concat string function.
       # Don't use the ESCAPE syntax when using LIKE/NOT LIKE, as

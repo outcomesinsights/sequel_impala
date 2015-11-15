@@ -78,10 +78,12 @@ describe "Simple Dataset operations" do
     @ds.order(Sequel.*(:number, 2)).paged_each(:rows_per_fetch=>5, :strategy=>:filter, :filter_values=>proc{|row, _| [row[:number] * 2]}){|row| rows << row}
     rows.must_equal((1..10).map{|i| {:id=>i, :number=>i*10}})
 
-    # check retrival with varying fetch sizes
-    array = (1..10).to_a
-    [1, 2, 5, 10, 20].each do |i|
-      @ds.with_fetch_size(i).select_order_map(:id).must_equal array
+    if RUBY_ENGINE == 'jruby'
+      # check retrival with varying fetch sizes
+      array = (1..10).to_a
+      [1, 2, 5, 10, 20].each do |i|
+        @ds.with_fetch_size(i).select_order_map(:id).must_equal array
+      end
     end
   end
 
@@ -318,6 +320,8 @@ describe Sequel::Database do
      "\\\\\r\n",
      "\\\\\n\n", 
      "\\\\\r\n\r\n",
+     "\b\a'\0\3",
+     #"\t\b\a'\0\3",
      "\\dingo",
      "\\'dingo",
      "\\\\''dingo",
