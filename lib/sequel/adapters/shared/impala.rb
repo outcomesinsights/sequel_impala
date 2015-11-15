@@ -286,6 +286,7 @@ module Sequel
       SPACE = Dataset::SPACE
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
+      EXCEPT_SOURCE_COLUMN = :__source__
 
       # Handle string concatenation using the concat string function.
       # Don't use the ESCAPE syntax when using LIKE/NOT LIKE, as
@@ -379,9 +380,37 @@ module Sequel
         get(Sequel::SQL::AliasedExpression.new(1, :one)).nil?
       end
 
+      # Emulate INTERSECT using a UNION ALL and checking for values in only the first table.
+      def except(other, opts=OPTS)
+        raise(InvalidOperation, "EXCEPT ALL not supported") if opts[:all]
+        raise(InvalidOperation, "The :from_self=>false option to except is not supported") if opts[:from_self] == false
+        cols = columns
+        rhs = other.from_self.select_group(*other.columns).select_append(Sequel.expr(2).as(EXCEPT_SOURCE_COLUMN))
+        from_self.
+          select_group(*cols).
+          select_append(Sequel.expr(1).as(EXCEPT_SOURCE_COLUMN)).
+          union(rhs, all: true).
+          select_group(*cols).
+          having{{count{}.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}.
+          from_self(opts)
+      end
+
       # Impala does not support INSERT DEFAULT VALUES.
       def insert_supports_empty_values?
         false
+      end
+
+      # Emulate INTERSECT using a UNION ALL and checking for values in both tables.
+      def intersect(other, opts=OPTS)
+        raise(InvalidOperation, "INTERSECT ALL not supported") if opts[:all]
+        raise(InvalidOperation, "The :from_self=>false option to intersect is not supported") if opts[:from_self] == false
+        cols = columns
+        from_self.
+          select_group(*cols).
+          union(other.from_self.select_group(*other.columns), all: true).
+          select_group(*cols).
+          having{count{}.* > 1}.
+          from_self(opts)
       end
 
       # Impala supports non-recursive common table expressions.
@@ -395,8 +424,9 @@ module Sequel
         false
       end
 
-      # Impala doesn't support INTERSECT or EXCEPT.
-      def supports_intersect_except?
+      # Impala doesn't support EXCEPT or INTERSECT, but support is emulated for them.
+      # However, EXCEPT ALL and INTERSECT ALL are not emulated.
+      def supports_intersect_except_all?
         false
       end
 

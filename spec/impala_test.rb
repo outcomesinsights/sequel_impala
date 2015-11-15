@@ -206,3 +206,37 @@ describe "Impala create/drop schemas" do
     DB.drop_schema(:s1, :if_exists=>true)
   end
 end
+
+describe "Impala except/intersect" do
+  before do
+    DB.create_table!(:a){Integer :a; Integer :b; Integer :c}
+    DB.create_table!(:b){Integer :d; Integer :e; Integer :f}
+  end
+  after do
+    DB.drop_table?(:a)
+    DB.drop_table?(:b)
+  end
+
+  it "should be emulated correctly" do
+    DB[:a].import([:a, :b, :c], [[1,2,3], [1,2,3], [2,3,4], [3,4,5], [3,4,5]])
+    DB[:b].import([:d, :e, :f], [[1,2,3], [2,3,4], [2,3,4], [4,5,6], [4,5,6]])
+
+    DB[:a].intersect(DB[:b]).select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4]]
+    DB[:b].intersect(DB[:a]).select_order_map([:d, :e, :f]).must_equal [[1,2,3], [2,3,4]]
+    DB[:a].intersect(DB[:a]).select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4], [3,4,5]]
+    DB[:b].intersect(DB[:b]).select_order_map([:d, :e, :f]).must_equal [[1,2,3], [2,3,4], [4,5,6]]
+
+    DB[:a].except(DB[:b]).select_order_map([:a, :b, :c]).must_equal [[3,4,5]]
+    DB[:b].except(DB[:a]).select_order_map([:d, :e, :f]).must_equal [[4,5,6]]
+    DB[:a].except(DB[:a]).select_order_map([:a, :b, :c]).must_equal []
+    DB[:b].except(DB[:b]).select_order_map([:d, :e, :f]).must_equal []
+
+    DB[:a].intersect(DB[:b]).unfiltered.select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4]]
+    DB[:a].except(DB[:b]).unfiltered.select_order_map([:a, :b, :c]).must_equal [[3,4,5]]
+
+    DB[:a].intersect(DB[:b], :alias=>:q).where(:q__b=>2).select_order_map([:a, :b, :c]).must_equal [[1,2,3]]
+    DB[:a].except(DB[:b], :alias=>:q).where(:q__b=>2).select_order_map([:a, :b, :c]).must_equal []
+    DB[:a].except(DB[:b], :alias=>:q).where(:q__b=>4).select_order_map([:a, :b, :c]).must_equal [[3,4,5]]
+  end
+end
+
