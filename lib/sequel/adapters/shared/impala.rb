@@ -71,6 +71,37 @@ module Sequel
         run(drop_schema_sql(schema, options))
       end
 
+      # Implicitly quailfy the table if using the :search_path option.
+      # This will look at all of the tables and views in the schemas,
+      # and if an unqualified table is used and appears in one of the
+      # schemas, it will be implicitly qualified with the given schema
+      # name.
+      def implicit_qualify(table)
+        return table unless opts[:search_path]
+
+        case table
+        when Symbol
+          s, t, a = Sequel.split_symbol(table)
+          if s
+            return table
+          end
+          t = implicit_qualify(t)
+          a ? Sequel.as(t, a) : t
+        when String
+          if schema = search_path_table_schemas[table]
+            Sequel.qualify(schema, table)
+          else
+            table
+          end
+        when SQL::Identifier
+          implicit_qualify(table.value.to_s)
+        when SQL::AliasedExpression
+          SQL::AliasedExpression.new(implicit_qualify(table), v.alias)
+        else
+          table
+        end
+      end
+
       # Load data from HDFS into Impala.
       #
       # Options:
@@ -112,7 +143,7 @@ module Sequel
       # tables and not views.  The Hive2 JDBC driver returns views when listing
       # tables and nothing when listing views.
       def tables(opts=OPTS)
-        super.select{|t| is_valid_table?(t)}
+        _tables(opts).select{|t| is_valid_table?(t)}
       end
 
       # Impala doesn't support transactions, so instead of issuing a
@@ -128,10 +159,18 @@ module Sequel
       # Determine the available views for listing all tables via JDBC (which
       # includes both tables and views), and removing all valid tables.
       def views(opts=OPTS)
-        get_tables('TABLE', opts).reject{|t| is_valid_table?(t)}
+        _tables(opts).reject{|t| is_valid_table?(t)}
       end
 
       private
+
+      def _tables(opts)
+        m = output_identifier_meth
+        self["SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}"].
+          select_map(:name).map do |table|
+            m.call(table)
+          end
+      end
 
       # Impala uses ADD COLUMNS instead of ADD COLUMN.  As its use of
       # ADD COLUMNS implies, it supports adding multiple columns at once,
@@ -216,6 +255,20 @@ module Sequel
       end
       def identifier_output_method_default
         nil
+      end
+
+      def search_path_table_schemas
+        @search_path_table_schemas ||= begin
+          search_path = opts[:search_path]
+          search_path = search_path.split(',') if search_path.is_a?(String)
+          table_schemas = {}
+          search_path.reverse_each do |schema|
+            _tables(:schema=>schema).each do |table|
+              table_schemas[table.to_s] = schema.to_s
+            end
+          end
+          table_schemas
+        end
       end
 
       # SHOW TABLE STATS will raise an error if given a view and not a table,
@@ -364,6 +417,18 @@ module Sequel
           sql << " WHERE false"
         end
         sql
+      end
+
+      # Implicitly qualify tables if using the :search_path database option.
+      def from(*)
+        ds = super
+        ds.opts[:from].map!{|t| db.implicit_qualify(t)}
+        ds
+      end
+
+      # Implicitly qualify tables if using the :search_path database option.
+      def join_table(type, table, expr=nil, options=OPTS, &block)
+        super(type, db.implicit_qualify(table), expr, options, &block)
       end
 
       # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns

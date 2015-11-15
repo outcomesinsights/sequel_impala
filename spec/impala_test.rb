@@ -207,6 +207,40 @@ describe "Impala create/drop schemas" do
   end
 end
 
+describe "Impala :search_path option" do
+  before do
+    DB.create_schema(:s1, :if_not_exists=>true)
+    DB.create_schema(:s2, :if_not_exists=>true)
+    DB.create_schema(:s3, :if_not_exists=>true)
+    DB.create_table(:s1__t1){Integer :a}
+    DB.create_table(:s2__t1){Integer :a}
+    DB.create_table(:s3__t1){Integer :a}
+    DB.create_table(:s2__t2){Integer :a}
+    DB.create_table(:s3__t2){Integer :a}
+    DB.create_table(:s3__t3){Integer :a}
+    DB.opts[:search_path] = 's1,s2,s3'
+  end
+  after do
+    DB.opts.delete(:search_path)
+    DB.drop_table?(:s3__t3, :s3__t2, :s2__t2, :s3__t1, :s2__t1, :s1__t1)
+    DB.drop_schema(:s3)
+    DB.drop_schema(:s2)
+    DB.drop_schema(:s1)
+  end
+
+  it "should use the search_path to implicitly qualify tables" do
+    DB[:t1].insert(1)
+    DB[:t2].insert(1)
+    DB[:t3].insert(1)
+    DB[:s1__t1].count.must_equal 1
+    DB[:s2__t2].count.must_equal 1
+    DB[:s3__t3].count.must_equal 1
+    DB[:t1].select_map(:a).must_equal [1]
+    DB[:t1].join(:t2, [:a]).select_map([:t1__a, :t2__a]).must_equal [[1, 1]]
+    DB[:t1].join(:t2, [:a]).join(:t3, [:a]).select_map([:t1__a, :t2__a, :t3__a]).must_equal [[1, 1, 1]]
+  end
+end
+
 describe "Impala except/intersect" do
   before do
     DB.create_table!(:a){Integer :a; Integer :b; Integer :c}
