@@ -125,18 +125,23 @@ describe "Impala date manipulation functions" do
   end
 end
 
-describe "Impala create_table" do
+describe "Impala syntax" do
   def ct_sql(opts)
     DB.send(:create_table_sql, :t, Sequel::Schema::CreateTableGenerator.new(DB){}, opts)
   end
 
-  it "should produce correct sql" do
+  it "should produce correct sql for create_table" do
     ct_sql(:external=>true).must_equal 'CREATE EXTERNAL TABLE `t` ()'
     ct_sql(:stored_as=>:parquet).must_equal 'CREATE TABLE `t` () STORED AS parquet'
     ct_sql(:location=>'/a/b').must_equal "CREATE TABLE `t` () LOCATION '/a/b'"
     ct_sql(:field_term=>"\b").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b'"
     ct_sql(:field_term=>"\b", :field_escape=>"\a").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED FIELDS TERMINATED BY '\b' ESCAPED BY '\a'"
     ct_sql(:line_term=>"\001").must_equal "CREATE TABLE `t` () ROW FORMAT DELIMITED LINES TERMINATED BY '\001'"
+  end
+
+  it "should produce correct sql for load_data" do
+    DB.send(:load_data_sql, '/a/b', :c, {}).must_equal "LOAD DATA INPATH '/a/b' INTO TABLE `c`"
+    DB.send(:load_data_sql, '/a/b', :c, :overwrite=>true).must_equal "LOAD DATA INPATH '/a/b' OVERWRITE INTO TABLE `c`"
   end
 end
 

@@ -71,6 +71,22 @@ module Sequel
         run(drop_schema_sql(schema, options))
       end
 
+      # Load data from HDFS into Impala.
+      #
+      # Options:
+      # :overwrite :: Overwrite the existing table instead of appending to it.
+      #
+      # Examples:
+      #
+      #  load_data('/user/foo', :bar)
+      #  LOAD DATA INPATH '/user/foo' INTO TABLE `bar`
+      #
+      #  load_data('/user/foo', :bar, :overwrite=>true)
+      #  LOAD DATA INPATH '/user/foo' OVERWRITE INTO TABLE `bar`
+      def load_data(path, table, options=OPTS)
+        run(load_data_sql(path, table, options))
+      end
+
       # Don't use PRIMARY KEY or AUTOINCREMENT on Impala, as Impala doesn't
       # support either.
       def serial_primary_key_options
@@ -209,6 +225,10 @@ module Sequel
         true
       rescue Sequel::DatabaseError
         false
+      end
+
+      def load_data_sql(path, table, options)
+        "LOAD DATA INPATH #{literal(path)}#{' OVERWRITE' if options[:overwrite]} INTO TABLE #{literal(table)}"
       end
 
       # Metadata queries on JDBC use uppercase keys, so set the identifier
