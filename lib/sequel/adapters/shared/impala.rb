@@ -469,6 +469,14 @@ module Sequel
           from_self(opts)
       end
 
+      # Use INSERT OVERWRITE instead of INSERT INTO when inserting into this dataset:
+      #
+      #   DB[:table].insert_overwrite.insert(DB[:other])
+      #   # INSERT OVERWRITE table SELECT * FROM other
+      def insert_overwrite
+        clone(:insert_overwrite=>true)
+      end
+
       # Impala does not support INSERT DEFAULT VALUES.
       def insert_supports_empty_values?
         false
@@ -597,6 +605,11 @@ module Sequel
 
       def literal_false
         BOOL_FALSE
+      end
+
+      def insert_into_sql(sql)
+        sql << (@opts[:insert_overwrite] ? ' OVERWRITE ' : ' INTO ')
+        identifier_append(sql, unaliased_identifier(@opts[:from].first))
       end
 
       # Double backslashes in all strings, and escape all apostrophes with

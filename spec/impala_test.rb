@@ -69,6 +69,15 @@ describe "Impala dataset" do
     @ds.truncate.must_equal nil
     @ds.count.must_equal 0
   end
+
+  it "#insert_overwrite should overwrite tables" do
+    @ds.insert_overwrite.insert(2)
+    @ds.select_map(:number).must_equal [2]
+    @ds.insert(4)
+    @ds.select_order_map(:number).must_equal [2, 4]
+    @ds.insert_overwrite.insert(3)
+    @ds.select_map(:number).must_equal [3]
+  end
 end
 
 describe "Impala string comparisons" do
