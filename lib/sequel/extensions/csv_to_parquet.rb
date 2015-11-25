@@ -35,11 +35,17 @@ module Sequel::CsvToParquet
 
     system("hdfs", "dfs", "-mkdir", hdfs_tmp_dir)
 
-    if skip_header
-      system("tail -n +2 #{Shellwords.shellescape(local_csv_path)} | hdfs dfs -put - #{Shellwords.shellescape(hdfs_tmp_file)}")
+    pipeline = if skip_header
+      "tail -n +2 #{Shellwords.shellescape(local_csv_path)}"
     else
-      system("hdfs", "dfs", "-put", local_csv_path, hdfs_tmp_file)
+      "cat #{Shellwords.shellescape(local_csv_path)}"
     end
+
+    if opts[:empty_null]
+      pipeline << ' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\''
+    end
+
+    system("#{pipeline} | hdfs dfs -put - #{Shellwords.shellescape(hdfs_tmp_file)}")
 
     create_table(tmp_table, :external=>true, :field_term=>',', :location=>hdfs_tmp_dir) do
       columns.zip(types) do |c, t|
