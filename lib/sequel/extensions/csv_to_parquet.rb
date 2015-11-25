@@ -50,10 +50,10 @@ module Sequel::CsvToParquet
     ds = from(into_table)
     ds = ds.insert_overwrite if overwrite
 
-    table_columns = into_table_columns.map { |h| h[:name].to_sym }
-    csv_columns = into_table_columns.map { |h| h[:name].to_sym }
     if mapping
       table_columns, csv_columns = mapping.to_a.transpose
+    else
+      table_columns = csv_columns = into_table_columns.map { |h| h[:name].to_sym }
     end
     ds.insert(table_columns, from(tmp_table).select(*csv_columns))
 
