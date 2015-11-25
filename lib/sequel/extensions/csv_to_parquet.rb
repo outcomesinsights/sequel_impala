@@ -2,6 +2,41 @@ require 'securerandom'
 require 'shellwords'
 
 module Sequel::CsvToParquet
+  # Load a CSV file into an existing parquet table.  By default,
+  # assumes the CSV file has headers that match the column names
+  # in the parquet table.  If this isn't true, the :headers or
+  # :mapping option should be specified.
+  #
+  # This works by adding the CSV file to HDFS via hdfs -put, then
+  # creating an external CSV table in Impala, then inserting into
+  # parquet table from the CSV table.
+  #
+  # Options:
+  # :empty_null :: Convert empty CSV cells to \N when adding to HDFS,
+  #                so Impala will treat them as NULL instead of the
+  #                emptry string.
+  # :headers :: Specify the headers to use in the CSV file, assuming the
+  #             csv file does not contain headers.  If :skip_headers is set
+  #             to true, this will ignore the existing headers in the file.
+  # :hdfs_tmp_dir :: The temporary HDFS directory to use when uploading.
+  # :mapping :: Override the mapping of the CSV columns to the parquet table
+  #             columns.  By default, assumes the CSV header names are the
+  #             same as the parquet table columns, and uses both.  If specified
+  #             this should be a hash with parquet column symbol keys, with the
+  #             value being the value to insert into the parquet table.  This
+  #             can be used to transform the data from the CSV table when loading
+  #             it into the parquet table.
+  # :overwrite :: Set to true to overwrite existing data in the parquet table
+  #               with the information from the CSV file.  The default is to
+  #               append the data to the existing parquet table.
+  # :skip_header :: Specifies that the first row contains headers and should
+  #                 be skipped when copying the CSV file to HDFS.  If not
+  #                 specified, headers are skipped unless the :headers option
+  #                 is given.
+  # :tmp_table :: The temporary table name to use for the CSV table.
+  # :types :: Specify the types to use for the temporary CSV table. By default,
+  #           it introspects the parquet table to get the type information, and
+  #           uses the type for the matching column name.
   def load_csv(local_csv_path, into_table, opts={})
     tmp_num = SecureRandom.hex(8)
     hdfs_tmp_dir = opts[:hdfs_tmp_dir] || "/tmp/cvs-#{tmp_num}"
