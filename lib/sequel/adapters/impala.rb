@@ -33,14 +33,13 @@ module Sequel
       def execute(sql, opts=OPTS)
         synchronize(opts[:server]) do |c|
           begin
-            if block_given?
-              yield log_yield(sql){c.execute(sql)}
-            else
-              log_yield(sql){c.query(sql)}
-              nil
-            end
+            cursor = log_yield(sql){c.execute(sql)}
+            yield cursor if block_given?
+            nil
           rescue *ImpalaExceptions => e
             raise_error(e)
+          ensure
+            cursor.close if cursor && cursor.open?
           end
         end
       end
