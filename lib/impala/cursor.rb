@@ -6,6 +6,8 @@ module Impala
     BUFFER_SIZE = 1024
     include Enumerable
 
+    attr_reader :columns
+
     def initialize(handle, service)
       @handle = handle
       @service = service
@@ -14,6 +16,7 @@ module Impala
       @row_buffer = []
       @done = false
       @open = true
+      @columns = metadata.schema.fieldSchemas.map(&:name)
 
       fetch_more
     end

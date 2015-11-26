@@ -3,25 +3,6 @@ require 'sequel/adapters/shared/impala'
 
 module Sequel
   module Impala
-    # Monkey-patch the Impala::Cursor class to support getting column information.
-    # This is required because otherwise Impala::Cursor can close the cursor
-    # before #initialize returns, and at that point you can't access the cursor
-    # metadata.
-    class ::Impala::Cursor
-      # The columns for the result set, as an array of strings.
-      attr_reader :columns
-
-      private
-
-      alias fetch_more_orig fetch_more
-
-      # If the columns haven't been set, set them before running the default behavior.
-      def fetch_more
-        @columns ||= metadata.schema.fieldSchemas.map(&:name)
-        fetch_more_orig
-      end
-    end
-
     class Database < Sequel::Database
       include DatabaseMethods
 
