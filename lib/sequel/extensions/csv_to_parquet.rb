@@ -14,7 +14,7 @@ module Sequel::CsvToParquet
   # Options:
   # :empty_null :: Convert empty CSV cells to \N when adding to HDFS,
   #                so Impala will treat them as NULL instead of the
-  #                emptry string.
+  #                empty string.
   # :headers :: Specify the headers to use in the CSV file, assuming the
   #             csv file does not contain headers.  If :skip_headers is set
   #             to true, this will ignore the existing headers in the file.
