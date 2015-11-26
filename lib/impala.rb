@@ -16,10 +16,10 @@ require 'impala/connection'
 module Impala
   DEFAULT_HOST = 'localhost'
   DEFAULT_PORT = 21000
-  class InvalidQueryError < StandardError; end
-  class ConnectionError < StandardError; end
-  class CursorError < StandardError; end
-  class ParsingError < StandardError; end
+  class Error < StandardError; end
+  class InvalidQueryError < Error; end
+  class ConnectionError < Error; end
+  class CursorError < Error; end
 
   # Connect to an Impala server. If a block is given, it will close the
   # connection after yielding the connection to the block.

@@ -8,10 +8,7 @@ module Sequel
 
       # Exception classes used by Impala.
       ImpalaExceptions = [
-        ::Impala::ConnectionError,
-        ::Impala::InvalidQueryError,
-        ::Impala::CursorError,
-        ::Impala::ParsingError,
+        ::Impala::Error,
         ::Impala::Protocol::Beeswax::BeeswaxException,
         IOError
       ].freeze
