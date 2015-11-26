@@ -76,9 +76,12 @@ module Sequel::CsvToParquet
       "cat #{Shellwords.shellescape(local_csv_path)}"
     end
 
-    if opts[:empty_null]
-      pipeline << ' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\''
-      pipeline << ' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\''
+    case opts[:empty_null]
+    when nil, false
+    when :perl
+      pipeline << ' | perl -p -e \'s/(^|,)(?=,|$)/\\1\\\\N/g\'' 
+    else
+      pipeline << (' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\'' * 2 )
     end
 
     system("#{pipeline} | hdfs dfs -put - #{Shellwords.shellescape(hdfs_tmp_file)}")
