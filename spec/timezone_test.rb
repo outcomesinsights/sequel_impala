@@ -39,32 +39,30 @@ describe "Sequel timezone support" do
     @db.drop_table(:t)
   end
 
-  if RUBY_ENGINE == 'jruby'
-    it "should support using UTC for database storage and local time for the application" do
-      Sequel.database_timezone = :utc
-      Sequel.application_timezone = :local
-      _test_timezone
-      Sequel.database_timezone = nil
-      @db.timezone = :utc
-      _test_timezone
-    end
+  it "should support using UTC for database storage and local time for the application" do
+    Sequel.database_timezone = :utc
+    Sequel.application_timezone = :local
+    _test_timezone
+    Sequel.database_timezone = nil
+    @db.timezone = :utc
+    _test_timezone
+  end
 
-    it "should support using local time for database storage and UTC for the application" do
-      Sequel.database_timezone = :local
-      Sequel.application_timezone = :utc
-      _test_timezone
-      Sequel.database_timezone = nil
-      @db.timezone = :local
-      _test_timezone
-    end
+  it "should support using local time for database storage and UTC for the application" do
+    Sequel.database_timezone = :local
+    Sequel.application_timezone = :utc
+    _test_timezone
+    Sequel.database_timezone = nil
+    @db.timezone = :local
+    _test_timezone
+  end
 
-    it "should support using UTC for both database storage and for application" do
-      Sequel.default_timezone = :utc
-      _test_timezone
-      Sequel.database_timezone = :local
-      @db.timezone = :utc
-      _test_timezone
-    end
+  it "should support using UTC for both database storage and for application" do
+    Sequel.default_timezone = :utc
+    _test_timezone
+    Sequel.database_timezone = :local
+    @db.timezone = :utc
+    _test_timezone
   end
 
   it "should support using local time for both database storage and for application" do
