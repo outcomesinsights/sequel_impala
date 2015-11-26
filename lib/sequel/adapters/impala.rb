@@ -106,20 +106,10 @@ module Sequel
 
       def fetch_rows(sql)
         execute(sql) do |cursor|
-          if identifier_output_method
-            cols = @columns = cursor.columns.map{|c| output_identifier(c)}
-            cursor.each do |row|
-              h = {}
-              cols.zip(row.values).each do |k, v|
-                h[k] = v
-              end
-              yield h
-            end
-          else
-            @columns = cursor.columns.map(&:to_sym)
-            cursor.each do |row|
-              yield row
-            end
+          @columns = cursor.columns.map!{|c| output_identifier(c)}
+          cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)
+          cursor.each do |row|
+            yield row
           end
         end
       end
