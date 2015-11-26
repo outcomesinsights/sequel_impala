@@ -78,6 +78,7 @@ module Sequel::CsvToParquet
 
     if opts[:empty_null]
       pipeline << ' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\''
+      pipeline << ' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\''
     end
 
     system("#{pipeline} | hdfs dfs -put - #{Shellwords.shellescape(hdfs_tmp_file)}")
