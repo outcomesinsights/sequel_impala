@@ -20,18 +20,6 @@ module Sequel
         @columns ||= metadata.schema.fieldSchemas.map(&:name)
         fetch_more_orig
       end
-
-      alias convert_raw_value_orig convert_raw_value
-      def convert_raw_value(value, schema)
-        return nil if value == 'NULL'
-
-        case schema.type
-        when 'varchar', 'char'
-          value
-        else
-          convert_raw_value_orig(value, schema)
-        end
-      end
     end
 
     class Database < Sequel::Database

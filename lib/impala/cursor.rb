@@ -117,7 +117,7 @@ module Impala
       return nil if value == 'NULL'
 
       case schema.type
-      when 'string'
+      when 'string', 'varchar', 'char'
         value
       when 'boolean'
         if value == 'true'
