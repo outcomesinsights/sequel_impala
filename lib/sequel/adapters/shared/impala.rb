@@ -281,10 +281,10 @@ module Sequel
       # SHOW TABLE STATS will raise an error if given a view and not a table,
       # so use that to differentiate tables from views.
       def is_valid_table?(t)
-        run("SHOW TABLE STATS #{literal(t)}")
-        true
-      rescue Sequel::DatabaseError
-        false
+        rows = describe(t, :formatted=>true)
+        if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
+          row[:type].to_s.strip !~ /VIEW/
+        end
       end
 
       def load_data_sql(path, table, options)
