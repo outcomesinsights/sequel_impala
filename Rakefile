@@ -34,6 +34,6 @@ require 'rdoc/task'
 RDoc::Task.new do |rdoc|
   rdoc.rdoc_dir = "rdoc"
   rdoc.options += RDOC_OPTS
-  rdoc.rdoc_files.add %w"README.rdoc CHANGELOG MIT-LICENSE lib/**/*.rb"
+  rdoc.rdoc_files.add %w"README.rdoc CHANGELOG LICENSE lib/**/*.rb"
 end
 
