@@ -1,3 +1,9 @@
 === HEAD
 
+* Add :empty_null=>:ruby option to csv_to_parquet extension, which can support quoted CSV cells (jeremyevans)
+
+* Optimize csv_to_parquet extension by not spawning shells or unnecessary processes (jeremyevans)
+
+=== 1.0.0 (2015-12-04)
+
 * Initial Public Release

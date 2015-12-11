@@ -1,5 +1,6 @@
 require 'securerandom'
-require 'shellwords'
+require 'csv'
+require 'open3'
 
 module Sequel::CsvToParquet
   # Load a CSV file into an existing parquet table.  By default,
@@ -14,7 +15,13 @@ module Sequel::CsvToParquet
   # Options:
   # :empty_null :: Convert empty CSV cells to \N when adding to HDFS,
   #                so Impala will treat them as NULL instead of the
-  #                empty string.
+  #                empty string.  Defaults to using 2 sed processes to
+  #                convert empty cells.  Can be set to :perl to use a
+  #                single perl process.  Can be set to :ruby to do the
+  #                processing inside the ruby process, which will also
+  #                convert quoted CSV cells (which Hive/Impala do not
+  #                support) to escaped CSV cells (which Hive/Impala do
+  #                support).
   # :headers :: Specify the headers to use in the CSV file, assuming the
   #             csv file does not contain headers.  If :skip_headers is set
   #             to true, this will ignore the existing headers in the file.
@@ -47,11 +54,15 @@ module Sequel::CsvToParquet
     mapping = opts[:mapping]
     overwrite = opts[:overwrite]
 
+    raw_data = File.open(local_csv_path, 'rb')
+
     if columns = opts[:headers]
       columns = columns.split(',') if columns.is_a?(String)
+      raw_data.readline if skip_header
     else
-      columns = File.open(local_csv_path).readline.chomp.split(',').map(&:downcase).map(&:to_sym)
+      columns = raw_data.readline.chomp.split(',').map(&:downcase).map(&:to_sym)
     end
+    raw_data.seek(raw_data.pos, IO::SEEK_SET)
 
     into_table_columns = describe(into_table) rescue nil
 
@@ -70,23 +81,67 @@ module Sequel::CsvToParquet
 
     system("hdfs", "dfs", "-mkdir", hdfs_tmp_dir)
 
-    pipeline = if skip_header
-      "tail -n +2 #{Shellwords.shellescape(local_csv_path)}"
-    else
-      "cat #{Shellwords.shellescape(local_csv_path)}"
-    end
-
     case opts[:empty_null]
     when nil, false
+      system('hdfs', 'dfs', '-put', '-', hdfs_tmp_file, :in=>raw_data)
+    when :ruby
+      error_in_thread = nil
+      csv_data, input = IO.pipe
+      Thread.new do
+        begin
+          comma = ','.freeze
+          comma_rep = '\\,'.freeze
+          nl = "\n".freeze
+          null = '\\N'.freeze
+          empty = ''.freeze
+
+          raw_data.seek(0, IO::SEEK_SET)
+          CSV.open(raw_data) do |csv|
+            csv.shift if skip_header
+            csv.each do |row|
+              last = row.pop
+              row.each do |col|
+                if !col || col == empty
+                  col = null
+                else
+                  col.gsub!(comma, comma_rep)
+                end
+                input.write(col)
+                input.write(comma)
+              end
+
+              if !last || last == empty
+                last = null
+              else
+                last.gsub!(comma, comma_rep)
+              end
+              input.write(last)
+              input.write(nl)
+            end
+          end
+        rescue => e
+          error_in_thread = e
+        ensure
+          input.close
+          csv_data.close
+        end
+      end
+      system('hdfs', 'dfs', '-put', '-', hdfs_tmp_file, :in=>csv_data)
+      raise error_in_thread if error_in_thread
     when :perl
-      pipeline << ' | perl -p -e \'s/(^|,)(?=,|$)/\\1\\\\N/g\'' 
+      Open3.pipeline(
+        ['perl', '-p', '-e', 's/(^|,)(?=,|$)/\\1\\\\N/g', {:in=>raw_data}],
+        ['hdfs', 'dfs', '-put', '-', hdfs_tmp_file]
+      )
     else
-      pipeline << (' | sed -r \'s/(^|,)(,|$)/\\1\\\\N\\2/g\'' * 2 )
+      Open3.pipeline(
+        ['sed', '-r', 's/(^|,)(,|$)/\\1\\\\N\\2/g', {:in=>raw_data}],
+        ['sed', '-r', 's/(^|,)(,|$)/\\1\\\\N\\2/g'],
+        ['hdfs', 'dfs', '-put', '-', hdfs_tmp_file]
+      )
     end
 
-    system("#{pipeline} | hdfs dfs -put - #{Shellwords.shellescape(hdfs_tmp_file)}")
-
-    create_table(tmp_table, :external=>true, :field_term=>',', :location=>hdfs_tmp_dir) do
+    create_table(tmp_table, :external=>true, :field_term=>',', :field_escape=>'\\', :location=>hdfs_tmp_dir) do
       columns.zip(types) do |c, t|
         column c, t
       end
