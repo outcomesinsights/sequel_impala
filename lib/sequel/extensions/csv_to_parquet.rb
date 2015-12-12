@@ -80,14 +80,15 @@ module Sequel::CsvToParquet
     end
 
     system("hdfs", "dfs", "-mkdir", hdfs_tmp_dir)
+    hdfs_put = ['hdfs', 'dfs', '-put', '-', hdfs_tmp_file]
 
     case opts[:empty_null]
     when nil, false
-      system('hdfs', 'dfs', '-put', '-', hdfs_tmp_file, :in=>raw_data)
+      system(*hdfs_put, :in=>raw_data)
     when :ruby
       error_in_thread = nil
       csv_data, input = IO.pipe
-      Thread.new do
+      csv_thread = Thread.new do
         begin
           comma = ','.freeze
           comma_rep = '\\,'.freeze
@@ -95,49 +96,45 @@ module Sequel::CsvToParquet
           null = '\\N'.freeze
           empty = ''.freeze
 
+          write_col = lambda do |col, after|
+            if !col || col == empty
+              col = null
+            else
+              col.gsub!(nl, empty)
+              col.gsub!(comma, comma_rep)
+            end
+            input.write(col)
+            input.write(after)
+          end
+
           raw_data.seek(0, IO::SEEK_SET)
           CSV.open(raw_data) do |csv|
             csv.shift if skip_header
             csv.each do |row|
               last = row.pop
               row.each do |col|
-                if !col || col == empty
-                  col = null
-                else
-                  col.gsub!(comma, comma_rep)
-                end
-                input.write(col)
-                input.write(comma)
+                write_col.call(col, comma)
               end
-
-              if !last || last == empty
-                last = null
-              else
-                last.gsub!(comma, comma_rep)
-              end
-              input.write(last)
-              input.write(nl)
+              write_col.call(last, nl)
             end
           end
-        rescue => e
-          error_in_thread = e
         ensure
           input.close
           csv_data.close
         end
       end
-      system('hdfs', 'dfs', '-put', '-', hdfs_tmp_file, :in=>csv_data)
-      raise error_in_thread if error_in_thread
+      system(*hdfs_put, :in=>csv_data)
+      csv_thread.join
     when :perl
       Open3.pipeline(
         ['perl', '-p', '-e', 's/(^|,)(?=,|$)/\\1\\\\N/g', {:in=>raw_data}],
-        ['hdfs', 'dfs', '-put', '-', hdfs_tmp_file]
+        hdfs_put
       )
     else
       Open3.pipeline(
         ['sed', '-r', 's/(^|,)(,|$)/\\1\\\\N\\2/g', {:in=>raw_data}],
         ['sed', '-r', 's/(^|,)(,|$)/\\1\\\\N\\2/g'],
-        ['hdfs', 'dfs', '-put', '-', hdfs_tmp_file]
+        hdfs_put
       )
     end
 
@@ -158,6 +155,8 @@ module Sequel::CsvToParquet
     ds.insert(table_columns, from(tmp_table).select(*csv_columns))
 
   ensure
+    raw_data.close if raw_data && !raw_data.closed?
+
     system("hdfs", "dfs", "-rm", hdfs_tmp_file)
     system("hdfs", "dfs", "-rmdir", hdfs_tmp_dir)
     drop_table?(tmp_table)
