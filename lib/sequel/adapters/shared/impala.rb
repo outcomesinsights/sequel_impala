@@ -618,6 +618,10 @@ module Sequel
         sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE, STRING_ESCAPE_REPLACE) << APOS 
       end
 
+      def multi_insert_sql_strategy
+        :values
+      end
+
       # Impala doesn't support esacping of identifiers, so you can't use backtick in
       # an identifier name.
       def quoted_identifier_append(sql, name)
