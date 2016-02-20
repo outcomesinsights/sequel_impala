@@ -500,6 +500,10 @@ module Sequel
         true
       end
       
+      def supports_cte_in_subqueries?
+        true
+      end
+
       # Impala doesn't support derived column lists when aliasing
       # tables.
       def supports_derived_column_lists?
