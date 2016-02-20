@@ -103,7 +103,7 @@ module Sequel
         when SQL::Identifier
           implicit_qualify(table.value.to_s)
         when SQL::AliasedExpression
-          SQL::AliasedExpression.new(implicit_qualify(table), v.alias)
+          SQL::AliasedExpression.new(implicit_qualify(table.expression), table.alias)
         else
           table
         end
