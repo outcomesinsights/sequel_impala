@@ -98,7 +98,7 @@ module Sequel
           if schema = search_path_table_schemas[table]
             Sequel.qualify(schema, table)
           else
-            table
+            Sequel.identifier(table)
           end
         when SQL::Identifier
           implicit_qualify(table.value.to_s)
