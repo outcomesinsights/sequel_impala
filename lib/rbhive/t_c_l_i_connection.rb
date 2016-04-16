@@ -47,7 +47,7 @@ module RBHive
     :PROTOCOL_V7 => 6
   }
 
-  def tcli_connect(server, port = 10_000, options)
+  def tcli_connect(server, port = 10_000, options={})
     logger = options.key?(:logger) ? options.delete(:logger) : StdOutLogger.new
     connection = RBHive::TCLIConnection.new(server, port, options, logger)
     ret = nil
@@ -295,14 +295,37 @@ module RBHive
       validate_handles!(handles)
       @client.CloseSession(Hive2::Thrift::TCloseSessionReq.new( sessionHandle: handles[:session] ))
     end
+
+    def get_column_info(op_handle)
+      cols = get_schema_for(op_handle).columns
+      [cols.map(&:columnName), cols.map{|c| c.typeDesc.types.first.primitiveEntry.type}]
+    end
+
+    def yield_hash_rows(op_handle, columns, convertors)
+      i = -1
+      cols = columns.zip(convertors).map{|col, conv| [i+=1, col, conv]}
+      rows = fetch_rows(op_handle)
+      until rows.empty?
+        rows.each do |row|
+          h = {}
+          vals = row.colVals
+          cols.each do |i, col, conv|
+            v = vals[i].get_value.value
+            h[col] = conv ? conv[v] : v
+          end
+          yield h
+        end
+        rows = fetch_rows(op_handle, :next)
+      end
+    end
     
     # Pull rows from the query result
     def fetch_rows(op_handle, orientation = :first, max_rows = 1000)
       fetch_req = prepare_fetch_results(op_handle, orientation, max_rows)
       fetch_results = @client.FetchResults(fetch_req)
       raise_error_if_failed!(fetch_results)
-      rows = fetch_results.results.rows
-      TCLIResultSet.new(rows, TCLISchemaDefinition.new(get_schema_for(op_handle), rows.first))
+      fetch_results.results.rows
+      #TCLIResultSet.new(rows, TCLISchemaDefinition.new(get_schema_for(op_handle), rows.first))
     end
         
     # Performs a explain on the supplied query on the server, returns it as a ExplainResult.
