@@ -229,7 +229,7 @@ module Sequel
 
       def create_table_sql(name, generator, options)
         sql = super
-        sql << create_table_parameters_sql(options)
+        sql += create_table_parameters_sql(options)
         sql
       end
 
