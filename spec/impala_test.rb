@@ -190,7 +190,7 @@ describe "Impala parquet support" do
     @ds.to_parquet(:items2)
     @db[:items2].all.must_equal [{:number=>1}]
   end
-end
+end unless DB.adapter_scheme == :rbhive
 
 describe "Impala create/drop schemas" do
   it "should use correct SQL" do
