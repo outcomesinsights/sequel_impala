@@ -193,6 +193,11 @@ describe "Impala parquet support" do
 end unless DB.adapter_scheme == :rbhive
 
 describe "Impala create/drop schemas" do
+  before do
+    DB.drop_table?(:s1__items)
+    DB.drop_schema(:s1, :if_exists=>true)
+  end
+
   it "should use correct SQL" do
     DB.send(:create_schema_sql, :s1, {}).must_equal "CREATE SCHEMA `s1`"
     DB.send(:create_schema_sql, :s1, :if_not_exists=>true).must_equal "CREATE SCHEMA IF NOT EXISTS `s1`"
