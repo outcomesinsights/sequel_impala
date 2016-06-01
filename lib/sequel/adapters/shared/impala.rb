@@ -169,6 +169,10 @@ module Sequel
         _tables(opts).reject{|t| is_valid_table?(t)}
       end
 
+      def invalidate_table_schemas
+        @search_path_table_schemas = nil
+      end
+
       private
 
       def _tables(opts)
