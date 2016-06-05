@@ -12,6 +12,24 @@ module Sequel
         end
       end
 
+      def create_table(*args)
+        run("SET SYNC_DDL=true")
+        super(*args)
+        refresh(args.first)
+      end
+
+      def create_table_as(*args)
+        run("SET SYNC_DDL=true")
+        super(*args)
+        refresh(args.first)
+      end
+
+      def refresh(table_name)
+        puts "Refreshing #{table_name}"
+        run("SET SYNC_DDL=true")
+        run(refresh_sql(table_name))
+      end
+
       # Create a database/schema in Imapala.
       #
       # Options:
@@ -98,7 +116,13 @@ module Sequel
           if schema = search_path_table_schemas[table]
             Sequel.qualify(schema, table)
           else
-            Sequel.identifier(table)
+            invalidate_table_schemas
+            if schema = search_path_table_schemas[table]
+              Sequel.qualify(schema, table)
+            else
+              puts "Double miss on #{table} - #{search_path_table_schemas.inspect}"
+              Sequel.identifier(table)
+            end
           end
         when SQL::Identifier
           implicit_qualify(table.value.to_s)
@@ -253,6 +277,10 @@ module Sequel
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
+      end
+
+      def refresh_sql(table_name)
+        "REFRESH #{quote_schema_table(table_name)}"
       end
 
       def drop_schema_sql(schema, options)
