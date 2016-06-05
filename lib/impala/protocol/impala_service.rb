@@ -11,7 +11,7 @@ require 'impala_service_types'
 module Impala
   module Protocol
     module ImpalaService
-      class Client < ::Impala::Protocol::Beeswax::BeeswaxService::Client 
+      class Client < ::Impala::Protocol::Beeswax::BeeswaxService::Client
         include ::Thrift::Client
 
         def Cancel(query_id)
@@ -110,7 +110,7 @@ module Impala
 
       end
 
-      class Processor < ::Impala::Protocol::Beeswax::BeeswaxService::Processor 
+      class Processor < ::Impala::Protocol::Beeswax::BeeswaxService::Processor
         include ::Thrift::Processor
 
         def process_Cancel(seqid, iprot, oprot)

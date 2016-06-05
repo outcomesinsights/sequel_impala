@@ -9,7 +9,7 @@ require_relative 'facebook_service'
 require_relative 'hive_metastore_types'
 
 module ThriftHiveMetastore
-  class Client < ::FacebookService::Client 
+  class Client < ::FacebookService::Client
     include ::Thrift::Client
 
     def create_database(database)
@@ -959,7 +959,7 @@ module ThriftHiveMetastore
 
   end
 
-  class Processor < ::FacebookService::Processor 
+  class Processor < ::FacebookService::Processor
     include ::Thrift::Processor
 
     def process_create_database(seqid, iprot, oprot)

@@ -531,7 +531,7 @@ module Sequel
       def supports_cte?(type=:select)
         true
       end
-      
+
       def supports_cte_in_subqueries?
         true
       end
@@ -552,7 +552,7 @@ module Sequel
       def supports_is_true?
         false
       end
-    
+
       # Impala doesn't support IN when used with multiple columns.
       def supports_multiple_column_in?
         false
@@ -634,7 +634,7 @@ module Sequel
       def insert_empty_columns_values
         [[columns.last], [nil]]
       end
-    
+
       def literal_true
         BOOL_TRUE
       end
@@ -651,7 +651,7 @@ module Sequel
       # Double backslashes in all strings, and escape all apostrophes with
       # backslashes.
       def literal_string_append(sql, s)
-        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE, STRING_ESCAPE_REPLACE) << APOS 
+        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE, STRING_ESCAPE_REPLACE) << APOS
       end
 
       def multi_insert_sql_strategy

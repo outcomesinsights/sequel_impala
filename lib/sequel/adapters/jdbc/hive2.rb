@@ -17,7 +17,7 @@ module Sequel
         extend Sequel::Database::ResetIdentifierMangling
         include Sequel::Impala::DatabaseMethods
       end
-      
+
       class Dataset < JDBC::Dataset
         include Sequel::Impala::DatasetMethods
       end

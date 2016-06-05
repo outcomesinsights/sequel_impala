@@ -69,6 +69,7 @@ module Sequel
       def execute(sql, opts=OPTS)
         synchronize(opts[:server]) do |c|
           begin
+            puts sql
             r = log_yield(sql){c.execute(sql)}
             yield(c, r) if block_given?
             nil
@@ -161,9 +162,9 @@ module Sequel
       private
 
       def literal_string_append(sql, s)
-        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE){|m| STRING_ESCAPES[m]} << APOS 
+        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE){|m| STRING_ESCAPES[m]} << APOS
       end
     end
   end
-end 
+end
 

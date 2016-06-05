@@ -116,8 +116,8 @@ module Sequel
       # some values in string literals to get correct results, but not the
       # tab character or things break.
       def literal_string_append(sql, s)
-        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE){|m| STRING_ESCAPES[m]} << APOS 
+        sql << APOS << s.to_s.gsub(STRING_ESCAPE_RE){|m| STRING_ESCAPES[m]} << APOS
       end
     end
   end
-end 
+end

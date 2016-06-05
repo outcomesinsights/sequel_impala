@@ -12,7 +12,7 @@ module Impala
   module Protocol
     module HiveMetastore
       module ThriftHiveMetastore
-        class Client < ::Impala::Protocol::Fb303::FacebookService::Client 
+        class Client < ::Impala::Protocol::Fb303::FacebookService::Client
           include ::Thrift::Client
 
           def create_database(database)
@@ -1160,7 +1160,7 @@ module Impala
 
         end
 
-        class Processor < ::Impala::Protocol::Fb303::FacebookService::Processor 
+        class Processor < ::Impala::Protocol::Fb303::FacebookService::Processor
           include ::Thrift::Processor
 
           def process_create_database(seqid, iprot, oprot)

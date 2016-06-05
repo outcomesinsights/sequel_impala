@@ -2,33 +2,33 @@ class ExplainResult
   def initialize(rows)
     @rows = rows
   end
-  
+
   def ast
     by_section[:abstract_syntax_tree].first
   end
-  
+
   def stage_count
     stage_dependencies.length
   end
-  
+
   def stage_dependencies
     by_section[:stage_dependencies] || []
   end
-  
+
   def to_tsv
     @rows.join("\n")
   end
-  
+
   def raw
     @rows
   end
-  
+
   def to_s
     to_tsv
   end
-  
+
   private
-  
+
   def by_section
     current_section = nil
     @rows.inject({}) do |sections, row|
