@@ -91,11 +91,6 @@ module Sequel
         @conversion_procs[8] = method(:to_application_timestamp)
       end
 
-      def to_application_timestamp(v)
-        return nil if v.nil?
-        super
-      end
-
       def connection_execute_method
         :execute
       end

@@ -311,7 +311,9 @@ module RBHive
           vals = row.colVals
           cols.each do |i, col, conv|
             v = vals[i].get_value.value
-            h[col] = conv ? conv[v] : v
+            h[col] = unless v.nil?
+              conv ? conv[v] : v
+            end
           end
           yield h
         end
