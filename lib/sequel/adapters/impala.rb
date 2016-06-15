@@ -10,8 +10,14 @@ module Sequel
       ImpalaExceptions = [
         ::Impala::Error,
         ::Impala::Protocol::Beeswax::BeeswaxException,
+        ::Thrift::TransportException,
         IOError
       ].freeze
+
+      DisconnectExceptions = [
+        ::Thrift::TransportException,
+        IOError
+      ]
 
       set_adapter_scheme :impala
 
@@ -28,6 +34,7 @@ module Sequel
 
       def disconnect_connection(c)
         c.close
+      rescue *DisconnectExceptions
       end
 
       def execute(sql, opts=OPTS)
@@ -54,7 +61,12 @@ module Sequel
       # in most cases that results in an unusable connection, so treat it as a
       # disconnect error so Sequel will reconnect.
       def disconnect_error?(exception, opts)
-        exception.is_a?(IOError) || super
+        case exception
+        when *DisconnectExceptions
+          true
+        else
+          super
+        end
       end
 
       # Use DESCRIBE to get the column names and types for the table.
