@@ -25,7 +25,6 @@ module Sequel
       end
 
       def refresh(table_name)
-        puts "Refreshing #{table_name}"
         run("SET SYNC_DDL=true")
         run(refresh_sql(table_name))
       end
@@ -120,7 +119,7 @@ module Sequel
             if schema = search_path_table_schemas[table]
               Sequel.qualify(schema, table)
             else
-              puts "Double miss on #{table} - #{search_path_table_schemas.inspect}"
+              puts "Double miss on #{table}"
               Sequel.identifier(table)
             end
           end
