@@ -333,6 +333,16 @@ module Sequel
         )
       end
 
+      # Impala doesn't like the word "integer"
+      def type_literal_generic_integer(column)
+        :int
+      end
+
+      # Impala doesn't like the word "biginteger"
+      def type_literal_generic_bignum(column)
+        :bigint
+      end
+
       # Impala doesn't support date columns yet, so use timestamp until date
       # is natively supported.
       def type_literal_generic_date(column)
