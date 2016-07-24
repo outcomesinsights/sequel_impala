@@ -13,19 +13,14 @@ module Sequel
       end
 
       def create_table(*args)
-        run("SET SYNC_DDL=true")
         super(*args)
-        refresh(args.first)
       end
 
       def create_table_as(*args)
-        run("SET SYNC_DDL=true")
         super(*args)
-        refresh(args.first)
       end
 
       def refresh(table_name)
-        run("SET SYNC_DDL=true")
         run(refresh_sql(table_name))
       end
 
