@@ -17,10 +17,10 @@ require 'impala/thrift_patch'
 module Impala
   DEFAULT_HOST = 'localhost'
   DEFAULT_PORT = 21000
-  class Error < StandardError; end
-  class InvalidQueryError < Error; end
-  class ConnectionError < Error; end
-  class CursorError < Error; end
+  class InvalidQueryError < StandardError; end
+  class ConnectionError < StandardError; end
+  class CursorError < StandardError; end
+  class ParsingError < StandardError; end
 
   # Connect to an Impala server. If a block is given, it will close the
   # connection after yielding the connection to the block.
@@ -30,8 +30,8 @@ module Impala
   #    finishes
   # @return [Connection] the open connection, or, if a block is
   #    passed, the return value of the block
-  def self.connect(host=DEFAULT_HOST, port=DEFAULT_PORT)
-    connection = Connection.new(host, port)
+  def self.connect(host=DEFAULT_HOST, port=DEFAULT_PORT, options={})
+    connection = Connection.new(host, port, options)
 
     if block_given?
       begin

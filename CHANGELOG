@@ -12,6 +12,8 @@
 
 * Enable keepalive on connection to database
 
+* Add support for Kerberizing impala-ruby
+
 === 1.0.1 (2016-09-20)
 
 * Fix disconnect detection in impala and rbhive adapters (jeremyevans)

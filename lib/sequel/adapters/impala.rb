@@ -8,7 +8,10 @@ module Sequel
 
       # Exception classes used by Impala.
       ImpalaExceptions = [
-        ::Impala::Error,
+        ::Impala::InvalidQueryError,
+        ::Impala::ConnectionError,
+        ::Impala::CursorError,
+        ::Impala::ParsingError,
         ::Impala::Protocol::Beeswax::BeeswaxException,
         ::Thrift::TransportException,
         IOError
@@ -25,7 +28,7 @@ module Sequel
       # are respected, and they default to 'localhost' and 21000, respectively.
       def connect(server)
         opts = server_opts(server)
-        ::Impala.connect(opts[:host]||'localhost', (opts[:port]||21000).to_i)
+        ::Impala.connect(opts[:host]||'localhost', (opts[:port]||21000).to_i, opts)
       end
 
       def database_error_classes
@@ -40,7 +43,7 @@ module Sequel
       def execute(sql, opts=OPTS)
         synchronize(opts[:server]) do |c|
           begin
-            cursor = log_yield(sql){c.execute(sql)}
+            cursor = log_yield(sql){c.execute(sql){}}
             yield cursor if block_given?
             nil
           rescue *ImpalaExceptions => e

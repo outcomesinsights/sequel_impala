@@ -30,25 +30,6 @@ module Impala
             raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'query failed: unknown result')
           end
 
-          def recv_result()
-            result = receive_message(Query_result)
-            raise result.error unless result.error.nil?
-            return result if result.ready
-          end
-
-          def executeAndWait2(query, clientCtx)
-            send_query(query)
-            sleep_time = 0.015625
-            max_sleep_time = 1
-            until result = recv_result
-              sleep(sleep_time)
-              sleep_time *= 2 unless sleep_time >= max_sleep_time
-            end
-            result.success
-            send_executeAndWait(query, clientCtx)
-            return recv_executeAndWait()
-          end
-
           def executeAndWait(query, clientCtx)
             send_executeAndWait(query, clientCtx)
             return recv_executeAndWait()
