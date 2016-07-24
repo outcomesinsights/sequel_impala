@@ -11,12 +11,12 @@ require 'impala_service_types'
 module Impala
   module Protocol
     module ImpalaHiveServer2Service
-      class Client < ::Impala::Protocol::Hive::TCLIService::Client
+      class Client < ::Impala::Protocol::Hive::TCLIService::Client 
         include ::Thrift::Client
 
       end
 
-      class Processor < ::Impala::Protocol::Hive::TCLIService::Processor
+      class Processor < ::Impala::Protocol::Hive::TCLIService::Processor 
         include ::Thrift::Processor
 
       end
