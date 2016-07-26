@@ -12,6 +12,7 @@ require 'time'
 require 'impala/protocol'
 require 'impala/cursor'
 require 'impala/connection'
+require 'impala/thrift_patch'
 
 module Impala
   DEFAULT_HOST = 'localhost'
