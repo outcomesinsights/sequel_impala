@@ -20,9 +20,16 @@ module Thrift
       puts "Enabling keep alive on socket..."
       s = @transport.handle
       s.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
-      s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPIDLE, 60)
-      s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPINTVL, 10)
-      s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPCNT, 5)
+
+      # Apparently Mac OS X (Darwin) doesn't implement the SOL_TCP options below
+      # so we'll hope keep alive works under Mac OS X, but in production
+      # we Dockerize Jigsaw, so these options should be available when
+      # we're running on Linux
+      if defined? ::Socket::SOL_TCP
+        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPIDLE, 60)
+        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPINTVL, 10)
+        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPCNT, 5)
+      end
     end
   end
 
