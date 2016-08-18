@@ -191,6 +191,14 @@ module Sequel
         @search_path_table_schemas = nil
       end
 
+      # Creates a dataset that uses the VALUES clause:
+      #
+      #   DB.values([[1, 2], [3, 4]])
+      #   VALUES ((1, 2), (3, 4))
+      def values(v)
+        @default_dataset.clone(:values=>v)
+      end
+
       private
 
       def _tables(opts)
@@ -383,8 +391,9 @@ module Sequel
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
       EXCEPT_SOURCE_COLUMN = :__source__
+      SELECT_VALUES = 'VALUES '.freeze
 
-      Dataset.def_sql_method(self, :select, %w'with select distinct columns from join where group having compounds order limit')
+      Dataset.def_sql_method(self, :select, [['if opts[:values]', %w'values'], ['else', %w'with select distinct columns from join where group having compounds order limit']])
 
       # Handle string concatenation using the concat string function.
       # Don't use the ESCAPE syntax when using LIKE/NOT LIKE, as
@@ -674,6 +683,14 @@ module Sequel
         return unless opts[:from]
         super
       end
+
+
+      # Support VALUES clause instead of the SELECT clause to return rows.
+      def select_values_sql(sql)
+        sql << SELECT_VALUES
+        expression_list_append(sql, opts[:values])
+      end
+
     end
   end
 end
