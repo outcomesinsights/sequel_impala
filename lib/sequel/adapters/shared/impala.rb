@@ -24,6 +24,10 @@ module Sequel
         run(refresh_sql(table_name))
       end
 
+      def compute_stats(table_name)
+        run(compute_stats_sql(table_name))
+      end
+
       # Create a database/schema in Imapala.
       #
       # Options:
@@ -283,6 +287,10 @@ module Sequel
 
       def refresh_sql(table_name)
         "REFRESH #{quote_schema_table(table_name)}"
+      end
+
+      def compute_stats_sql(table_name)
+        "COMPUTE STATS #{quote_schema_table(table_name)}"
       end
 
       def drop_schema_sql(schema, options)
