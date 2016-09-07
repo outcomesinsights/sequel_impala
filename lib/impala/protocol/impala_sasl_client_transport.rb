@@ -31,14 +31,17 @@ module Thrift
     end
 
     def read(sz)
-      len, = @transport.read(SASL_PAYLOAD_LENGTH_BYTES).unpack('l>') if @rbuf.nil?
+      len = nil
+      if @rbuf.nil?
+        len, = @transport.read(SASL_PAYLOAD_LENGTH_BYTES).unpack('l>')
+      end
 
       sz = len if len && sz > len
       @index += sz
       ret = @rbuf.slice(@index - sz, sz) || Bytes.empty_byte_buffer
       if ret.length < sz
-	sz -= ret.length
-	read_into_buffer(@rbuf, [sz, len || 0].max)
+        sz -= ret.length
+        read_into_buffer(@rbuf, [sz, len || 0].max)
         @index = sz
         ret += @rbuf.slice(0, sz) || Bytes.empty_byte_buffer
       end
@@ -154,7 +157,16 @@ puts "COMPLETED"
     private
 
     def reset_buffer!
-      len, = @transport.read(SASL_PAYLOAD_LENGTH_BYTES).unpack('l>')
+      # Seems like sometimes when the client would read the payload, the
+      # length of the returned string was less than expected.  This would
+      # cause the client to misread the length of the incoming payload.
+      #
+      # So, so long as the server hasn't returned the full payload length,
+      # we keep reading.  This seems to have fixed the error, hokey as
+      # it may seem.
+      pay = @transport.read(SASL_PAYLOAD_LENGTH_BYTES)
+      pay += @transport.read(SASL_PAYLOAD_LENGTH_BYTES - pay.length) while pay.length < SASL_PAYLOAD_LENGTH_BYTES
+      len, = pay.unpack('l>')
       @rbuf = @transport.read(len)
       while @rbuf.size < len
         @rbuf << @transport.read(len - @rbuf.size)
