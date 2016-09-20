@@ -34,6 +34,12 @@ MIT/Apache
 
 = Author
 
+Ryan Duryea <aguynamedryan@gmail.com>
+
+Work on sequel-impala is generously funded by [Outcomes Insights, Inc.](http://outins.com)
+
+= Previous Author
+
 Jeremy Evans <code@jeremyevans.net>
 
-Work on sequel-impala is generously funded by Outcomes Insights, Inc.
+Provided initial work on this gem, and continues to maintain [Sequel](http://sequel.jeremyevans.net/)
