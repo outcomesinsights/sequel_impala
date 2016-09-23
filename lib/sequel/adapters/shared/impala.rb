@@ -12,6 +12,10 @@ module Sequel
         end
       end
 
+      def refresh(table_name)
+        run(refresh_sql(table_name))
+      end
+
       # Create a database/schema in Imapala.
       #
       # Options:
@@ -249,6 +253,10 @@ module Sequel
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
+      end
+
+      def refresh_sql(table_name)
+        "REFRESH #{quote_schema_table(table_name)}"
       end
 
       def drop_schema_sql(schema, options)
