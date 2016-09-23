@@ -102,7 +102,13 @@ module Sequel
           if schema = search_path_table_schemas[table]
             Sequel.qualify(schema, table)
           else
-            Sequel.identifier(table)
+            invalidate_table_schemas
+            if schema = search_path_table_schemas[table]
+              Sequel.qualify(schema, table)
+            else
+              puts "Double miss on #{table}"
+              Sequel.identifier(table)
+            end
           end
         when SQL::Identifier
           implicit_qualify(table.value.to_s)
@@ -171,6 +177,10 @@ module Sequel
       # includes both tables and views), and removing all valid tables.
       def views(opts=OPTS)
         _tables(opts).reject{|t| is_valid_table?(t)}
+      end
+
+      def invalidate_table_schemas
+        @search_path_table_schemas = nil
       end
 
       private
