@@ -1,3 +1,17 @@
+=== HEAD
+
+* Add Database#compute_stats
+
+* Add Database#values
+
+* Add Database#refresh
+
+* Add Database#invalidate_search_path
+
+* Change types of integer/biginteger to int/bigint
+
+* Enable keepalive on connection to database
+
 === 1.0.1 (2016-09-20)
 
 * Fix disconnect detection in impala and rbhive adapters (jeremyevans)
