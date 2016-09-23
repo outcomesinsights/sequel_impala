@@ -21,7 +21,7 @@ module Thrift
       @sasl_mechanism = sasl_params.fetch(:mechanism, 'PLAIN')
       raise 'Unknown SASL mechanism: #{@sasl_mechanism}' unless ['PLAIN', 'GSSAPI'].include? @sasl_mechanism
       if @sasl_mechanism == 'GSSAPI'
-	require 'gssapi'
+        require 'gssapi'
         @sasl_remote_principal = sasl_params[:remote_principal]
         @sasl_remote_host = sasl_params[:remote_host]
         @gsscli = GSSAPI::Simple.new(@sasl_remote_host, @sasl_remote_principal)
@@ -34,7 +34,7 @@ module Thrift
       @index += sz
       ret = @rbuf.slice(@index - sz, sz) || Bytes.empty_byte_buffer
       if ret.length < sz
-	sz -= ret.length
+        sz -= ret.length
         read_into_buffer(@rbuf, [sz, len || 0].max)
         @index = sz
         ret += @rbuf.slice(0, sz) || Bytes.empty_byte_buffer

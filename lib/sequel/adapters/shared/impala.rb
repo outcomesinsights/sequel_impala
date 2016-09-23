@@ -110,7 +110,6 @@ module Sequel
             if schema = search_path_table_schemas[table]
               Sequel.qualify(schema, table)
             else
-              puts "Double miss on #{table}"
               Sequel.identifier(table)
             end
           end

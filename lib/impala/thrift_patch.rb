@@ -17,7 +17,6 @@ module Thrift
     # instead.
     def open
       super
-      puts "Enabling keep alive on socket..."
       s = @transport.handle
       s.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
 

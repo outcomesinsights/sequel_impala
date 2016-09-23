@@ -37,8 +37,8 @@ module Thrift
       @index += sz
       ret = @rbuf.slice(@index - sz, sz) || Bytes.empty_byte_buffer
       if ret.length < sz
-	sz -= ret.length
-	read_into_buffer(@rbuf, [sz, len || 0].max)
+        sz -= ret.length
+        read_into_buffer(@rbuf, [sz, len || 0].max)
         @index = sz
         ret += @rbuf.slice(0, sz) || Bytes.empty_byte_buffer
       end
@@ -125,7 +125,6 @@ module Thrift
           when SASL_NEGOTIATION_STATUS[:COMPLETE]
             s = @transport.to_io.read len
             @sasl_complete = true
-puts "COMPLETED"
           when SASL_NEGOTIATION_STATUS[:OK]
             raise "Failed to complete GSS challenge exchange"
           end
