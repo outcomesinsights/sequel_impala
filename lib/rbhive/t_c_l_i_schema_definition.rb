@@ -48,7 +48,7 @@ module RBHive
     end
 
     def column_type_map
-      @column_type_map ||= column_names.inject({}) do |hsh, c| 
+      @column_type_map ||= column_names.inject({}) do |hsh, c|
         definition = @schema.columns.find {|s| s.columnName.to_sym == c }
         # If the column isn't in the schema (eg partitions in SELECT * queries) assume they are strings
         type = TYPE_NAMES[definition.typeDesc.types.first.primitiveEntry.type].downcase rescue nil

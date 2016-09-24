@@ -14,7 +14,7 @@ describe "Database schema parser" do
     begin
       DB.schema(:items, :reload=>true).must_be_kind_of(Array)
       DB.schema(:items, :reload=>true).first.first.must_equal :number
-    ensure 
+    ensure
       DB.drop_table(:items)
     end
   end
@@ -31,7 +31,7 @@ describe "Database schema parser" do
     begin
       DB.schema(ds, :reload=>true).must_be_kind_of(Array)
       DB.schema(ds, :reload=>true).first.first.must_equal :number
-    ensure 
+    ensure
       DB.identifier_output_method = :reverse
       DB.identifier_input_method = :reverse
       DB.drop_table(:items)
@@ -128,7 +128,7 @@ describe "Database schema modifiers" do
     @ds.insert([10])
     @ds.columns!.must_equal [:number]
   end
-  
+
   it "should create tables from select statements correctly" do
     @db.create_table!(:items){Integer :number}
     @ds.insert([10])
@@ -137,7 +137,7 @@ describe "Database schema modifiers" do
     @db[:items2].columns.must_equal [:number]
     @db[:items2].all.must_equal [{:number=>10}]
   end
-  
+
   it "should not raise an error if table doesn't exist when using drop_table :if_exists" do
     @db.drop_table(:items, :if_exists=>true)
   end
@@ -182,7 +182,7 @@ describe "Database schema modifiers" do
       @db[:items_view].map(:number).must_equal [2]
     end
   end
-  
+
   describe "join tables" do
     after do
       @db.drop_join_table(:cat_id=>:cats, :dog_id=>:dogs) if @db.table_exists?(:cats_dogs)
@@ -217,7 +217,7 @@ describe "Database schema modifiers" do
     @ds.insert([10])
     @ds.columns!.must_equal [:number]
   end
-  
+
   it "should add columns to tables correctly" do
     @db.create_table!(:items){Integer :number}
     @ds.insert(:number=>10)

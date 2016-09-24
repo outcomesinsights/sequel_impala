@@ -163,7 +163,7 @@ module Sequel
       # tables and not views.  The Hive2 JDBC driver returns views when listing
       # tables and nothing when listing views.
       def tables(opts=OPTS)
-        _tables(opts).select{|t| is_valid_table?(t)}
+        _tables(opts).select{|t| is_valid_table?(t, opts)}
       end
 
       # Impala doesn't support transactions, so instead of issuing a
@@ -179,7 +179,19 @@ module Sequel
       # Determine the available views for listing all tables via JDBC (which
       # includes both tables and views), and removing all valid tables.
       def views(opts=OPTS)
-        _tables(opts).reject{|t| is_valid_table?(t)}
+        _tables(opts).reject{|t| is_valid_table?(t, opts)}
+      end
+
+      def invalidate_table_schemas
+        @search_path_table_schemas = nil
+      end
+
+      # Creates a dataset that uses the VALUES clause:
+      #
+      #   DB.values([[1, 2], [3, 4]])
+      #   VALUES ((1, 2), (3, 4))
+      def values(v)
+        @default_dataset.clone(:values=>v)
       end
 
       def invalidate_table_schemas
@@ -313,7 +325,8 @@ module Sequel
 
       # SHOW TABLE STATS will raise an error if given a view and not a table,
       # so use that to differentiate tables from views.
-      def is_valid_table?(t)
+      def is_valid_table?(t, opts=OPTS)
+        t = [opts[:schema], t].map(&:to_s).join('__').to_sym if opts[:schema]
         rows = describe(t, :formatted=>true)
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
           row[:type].to_s.strip !~ /VIEW/

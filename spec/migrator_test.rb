@@ -9,7 +9,7 @@ describe Sequel::Migrator do
   after do
     @db.drop_table?(:schema_info, :schema_migrations, :sm1111, :sm1122, :sm2222, :sm2233, :sm3333, :sm11111, :sm22222)
   end
-  
+
   it "should be able to migrate up and down all the way successfully" do
     @dir = 'spec/files/integer_migrations'
     @m.apply(@db, @dir)
@@ -19,7 +19,7 @@ describe Sequel::Migrator do
     [:sm1111, :sm2222, :sm3333].each{|n| @db.table_exists?(n).must_equal false}
     @db[:schema_info].get(:version).must_equal 0
   end
-  
+
   it "should be able to migrate up and down to specific versions successfully" do
     @dir = 'spec/files/integer_migrations'
     @m.apply(@db, @dir, 2)

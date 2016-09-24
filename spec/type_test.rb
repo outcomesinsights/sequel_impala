@@ -30,25 +30,25 @@ describe "Supported types" do
     ds.insert(:number => 2)
     ds.all.must_equal [{:number=>2}]
   end
-  
+
   it "should support generic fixnum type" do
     ds = create_items_table_with_column(:number, Fixnum)
     ds.insert(:number => 2)
     ds.all.must_equal [{:number=>2}]
   end
-  
+
   it "should support generic bignum type" do
     ds = create_items_table_with_column(:number, Bignum)
     ds.insert(:number => 2**34)
     ds.all.must_equal [{:number=>2**34}]
   end
-  
+
   it "should support generic float type" do
     ds = create_items_table_with_column(:number, Float)
     ds.insert(:number => 2.1)
     ds.all.must_equal [{:number=>2.1}]
   end
-  
+
   it "should support generic numeric type" do
     ds = create_items_table_with_column(:number, Numeric, :size=>[15, 10])
     ds.insert(:number => BigDecimal.new('2.123456789'))
@@ -63,13 +63,13 @@ describe "Supported types" do
     ds.insert(:name => 'Test User')
     ds.all.must_equal [{:name=>'Test User'}]
   end
-  
+
   it "should support generic string type with size" do
     ds = create_items_table_with_column(:name, String, :size=>100)
     ds.insert(:name => Sequel.cast('Test User', 'varchar(100)'))
     ds.all.must_equal [{:name=>'Test User'}]
   end
-  
+
   it "should support generic datetime type" do
     ds = create_items_table_with_column(:tim, DateTime)
     t = DateTime.now
@@ -80,14 +80,14 @@ describe "Supported types" do
     ds.insert(:tim => t)
     ds.first[:tim].strftime('%Y%m%d%H%M%S').must_equal t.strftime('%Y%m%d%H%M%S')
   end
-  
+
   it "should support generic date type" do
     ds = create_items_table_with_column(:d, Date)
     t = Date.today
     ds.insert(:d => t)
     ds.first[:d].strftime('%Y%m%d').must_equal t.strftime('%Y%m%d')
   end
-  
+
   it "should support generic boolean type" do
     ds = create_items_table_with_column(:number, TrueClass)
     ds.insert(:number => true)
