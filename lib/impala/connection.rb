@@ -33,12 +33,15 @@ module Impala
     end
 
     def thrift_transport(server, port)
+      socket = thrift_socket(server, port, @options[:timeout])
+
       case @options[:transport]
       when :buffered
-        return Thrift::BufferedTransport.new(thrift_socket(server, port, @options[:timeout]))
+        return Thrift::BufferedTransport.new(socket)
       when :sasl
-        return Thrift::ImpalaSaslClientTransport.new(thrift_socket(server, port, @options[:timeout]),
-                                               parse_sasl_params(@options[:sasl_params]))
+        opts = parse_sasl_params(@options[:sasl_params])
+        mechanism = opts.delete(:mechanism)
+        return SASLTransport.new(socket, mechanism, opts)
       else
         raise "Unrecognised transport type '#{@options[:transport]}'"
       end

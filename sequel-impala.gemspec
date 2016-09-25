@@ -18,7 +18,8 @@ modified versions of the impala and jdbc-hive2 gems that have
 been updated, tested, and optimized.
 END
   s.add_dependency('sequel', '~> 4')
-  s.add_dependency('thrift', '~> 0.9.1')
+  s.add_dependency('thrift', '~> 0.9')
+  s.add_dependency('gssapi', '~> 1.2')
   s.add_development_dependency('rake', '~> 0')
   s.add_development_dependency("minitest", '~> 5.7')
   s.add_development_dependency("minitest-hooks", '~> 0')
