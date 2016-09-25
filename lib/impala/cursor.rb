@@ -6,43 +6,6 @@ module Impala
     BUFFER_SIZE = 1024
     include Enumerable
 
-    def self.typecast_boolean(value)
-      value == 'true'
-    end
-
-    def self.typecast_int(value)
-      value.to_i
-    end
-
-    def self.typecast_float(value)
-      value.to_f
-    end
-
-    def self.typecast_decimal(value)
-      BigDecimal.new(value)
-    end
-
-    def self.typecast_timestamp(value)
-      Time.parse(value)
-    end
-
-    TYPECAST_MAP = {
-      'boolean'=>method(:typecast_boolean),
-      'int'=>method(:typecast_int),
-      'double'=>method(:typecast_float),
-      'decimal'=>method(:typecast_decimal),
-      'timestamp'=>method(:typecast_timestamp),
-    }
-    TYPECAST_MAP['tinyint'] = TYPECAST_MAP['smallint'] = TYPECAST_MAP['bigint'] = TYPECAST_MAP['int']
-    TYPECAST_MAP['float'] = TYPECAST_MAP['double']
-    TYPECAST_MAP.freeze
-
-    NULL = 'NULL'.freeze
-
-    attr_reader :columns
-
-    attr_reader :typecast_map
-
     def initialize(handle, service)
       @handle = handle
       @service = service
@@ -51,8 +14,8 @@ module Impala
       @row_buffer = []
       @done = false
       @open = true
-      @typecast_map = TYPECAST_MAP.dup
-      @columns = metadata.schema.fieldSchemas.map(&:name)
+
+      fetch_more
     end
 
     def inspect
@@ -142,16 +105,37 @@ module Impala
       row = {}
       fields = raw.split(metadata.delim)
 
-      row_convertor.each do |c, p, i|
-        v = fields[i]
-        row[c] = (p ? p.call(v) : v unless v == NULL)
+      metadata.schema.fieldSchemas.zip(fields).each do |schema, raw_value|
+        value = convert_raw_value(raw_value, schema)
+        row[schema.name.to_sym] = value
       end
 
       row
     end
 
-    def row_convertor
-      @row_convertor ||= columns.zip(metadata.schema.fieldSchemas.map{|s| typecast_map[s.type]}, (0...(columns.length)).to_a)
+    def convert_raw_value(value, schema)
+      return nil if value == 'NULL'
+
+      case schema.type
+      when 'string'
+        value
+      when 'boolean'
+        if value == 'true'
+          true
+        elsif value == 'false'
+          false
+        else
+          raise ParsingError.new("Invalid value for boolean: #{value}")
+        end
+      when 'tinyint', 'smallint', 'int', 'bigint'
+        value.to_i
+      when 'double', 'float', 'decimal'
+        value.to_f
+      when "timestamp"
+        Time.parse(value)
+      else
+        raise ParsingError.new("Unknown type: #{schema.type}")
+      end
     end
   end
 end
