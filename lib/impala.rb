@@ -10,7 +10,12 @@ require 'impala/version'
 require 'thrift'
 require 'time'
 require 'impala/protocol'
+begin
 require 'impala/sasl_transport'
+rescue LoadError
+  # gssapi not supported by operating system, continue as impala adapter
+  # can be used in buffered (non-SASL) mode.
+end
 require 'impala/cursor'
 require 'impala/connection'
 require 'impala/thrift_patch'
