@@ -24,7 +24,7 @@ module Sequel
 
       set_adapter_scheme :impala
 
-      attr :last_cursor
+      attr_reader :runtime_profiles
 
       # Connect to the Impala server.  Currently, only the :host and :port options
       # are respected, and they default to 'localhost' and 21000, respectively.
@@ -62,11 +62,15 @@ module Sequel
         end
       end
 
-      def runtime_profile
-        last_cursor.runtime_profile
+      def profile_for(profile_name=:default)
+        Sequel.synchronize{@runtime_profiles[profile_name]}
       end
 
       private
+
+      def adapter_initialize
+        @runtime_profiles = {}
+      end
 
       def connection_execute_method
         :query
@@ -127,33 +131,31 @@ module Sequel
       }.freeze
       STRING_ESCAPE_RE = /(#{Regexp.union(STRING_ESCAPES.keys)})/
 
-      def fetch_rows(sql, &block)
+      def fetch_rows(sql)
         execute(sql) do |cursor|
-          fetch_rows_from_cursor(cursor, &block)
-        end
-      end
+          @columns = cursor.columns.map!{|c| output_identifier(c)}
+          cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)
 
-      def fetch_rows_and_profile(sql)
-        profile = nil
-        execute(sql) do |cursor|
           begin
-            fetch_rows_from_cursor(cursor, &block)
+            cursor.each do |row|
+              yield row
+            end
           ensure
-            profile = cursor.runtime_profile
+            if profile_name = @opts[:profile_name]
+              profile = cursor.runtime_profile
+              Sequel.synchronize{db.runtime_profiles[profile_name] = profile}
+            end
           end
         end
-        profile
+
+        self
+      end
+
+      def profile(profile_name=:default)
+        clone(:profile_name => profile_name)
       end
 
       private
-
-      def fetch_rows_from_cursor(cursor, &block)
-        @columns = cursor.columns.map!{|c| output_identifier(c)}
-        cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)
-        cursor.each do |row|
-          block.call(row)
-        end
-      end
 
       # Unlike the jdbc/hive2 driver, the impala driver requires you escape
       # some values in string literals to get correct results, but not the
