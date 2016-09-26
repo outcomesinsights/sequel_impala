@@ -549,12 +549,10 @@ module Sequel
         raise(InvalidOperation, "INTERSECT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to intersect is not supported") if opts[:from_self] == false
         cols = columns
-        from_self.
-          select_group(*cols).
-          union(other.from_self.select_group(*other.columns), all: true).
-          select_group(*cols).
-          having{count{}.* > 1}.
-          from_self(opts)
+        (from_self(alias: :l)
+          .join(other, cols)
+          .select_all(:l))
+          .from_self(opts)
       end
 
       # Impala supports non-recursive common table expressions.
