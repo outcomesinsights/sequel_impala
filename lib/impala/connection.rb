@@ -108,8 +108,21 @@ module Impala
       query = sanitize_query(raw_query)
       handle = send_query(query, query_options)
 
-      check_result(handle)
-      Cursor.new(handle, @service)
+      cursor = Cursor.new(handle, @service)
+      until cursor.query_done?
+        sleep query_options[:sleep_interval] || 0.2
+      end
+      return cursor
+    rescue
+      puts $!.message
+      puts $!.backtrace.join("\n")
+      raise
+    ensure
+      return cursor
+    end
+
+    def close_handle(handle)
+      @service.close(handle)
     end
 
     private
@@ -131,22 +144,8 @@ module Impala
         "#{key.upcase}=#{value}"
       end
 
-      @service.executeAndWait(query, LOG_CONTEXT_ID)
-    end
-
-    def check_result(handle)
-      state = @service.get_state(handle)
-      if state == Protocol::Beeswax::QueryState::EXCEPTION
-        close_handle(handle)
-        raise ConnectionError.new("The query was aborted")
-      end
-    rescue
-      close_handle(handle)
-      raise
-    end
-
-    def close_handle(handle)
-      @service.close(handle)
+      #@service.executeAndWait(query, LOG_CONTEXT_ID)
+      @service.query(query)
     end
   end
 end

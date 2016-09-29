@@ -39,9 +39,9 @@ module Impala
 
     NULL = 'NULL'.freeze
 
-    attr_reader :columns
-
     attr_reader :typecast_map
+
+    attr_reader :handle
 
     def initialize(handle, service)
       @handle = handle
@@ -52,7 +52,10 @@ module Impala
       @done = false
       @open = true
       @typecast_map = TYPECAST_MAP.dup
-      @columns = metadata.schema.fieldSchemas.map(&:name)
+    end
+
+    def columns
+      @columns ||= metadata.schema.fieldSchemas.map(&:name)
     end
 
     def inspect
@@ -100,6 +103,13 @@ module Impala
       @open
     end
 
+    def query_done?
+      [
+        Protocol::Beeswax::QueryState::EXCEPTION,
+        Protocol::Beeswax::QueryState::FINISHED
+      ].include?(@service.get_state(@handle))
+    end
+
     # Returns true if there are any more rows to fetch.
     def has_more?
       !@done || !@row_buffer.empty?
@@ -119,8 +129,13 @@ module Impala
       fetch_batch until @done || @row_buffer.count >= BUFFER_SIZE
     end
 
+    def exceptional?
+      @service.get_state(@handle) == Protocol::Beeswax::QueryState::EXCEPTION
+    end
+
     def fetch_batch
       raise CursorError.new("Cursor has expired or been closed") unless @open
+      raise ConnectionError.new("The query was aborted") if exceptional?
 
       begin
         res = @service.fetch(@handle, false, BUFFER_SIZE)

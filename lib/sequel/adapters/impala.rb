@@ -57,6 +57,10 @@ module Sequel
             puts $!.backtrace.join("\n")
             raise
           ensure
+            if cursor && profile_name = opts[:profile_name]
+              profile = cursor.runtime_profile
+              Sequel.synchronize{@runtime_profiles[profile_name] = profile}
+            end
             cursor.close if cursor && cursor.open?
           end
         end
@@ -132,19 +136,11 @@ module Sequel
       STRING_ESCAPE_RE = /(#{Regexp.union(STRING_ESCAPES.keys)})/
 
       def fetch_rows(sql)
-        execute(sql) do |cursor|
+        execute(sql, @opts) do |cursor|
           @columns = cursor.columns.map!{|c| output_identifier(c)}
           cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)
-
-          begin
-            cursor.each do |row|
-              yield row
-            end
-          ensure
-            if profile_name = @opts[:profile_name]
-              profile = cursor.runtime_profile
-              Sequel.synchronize{db.runtime_profiles[profile_name] = profile}
-            end
+          cursor.each do |row|
+            yield row
           end
         end
 
