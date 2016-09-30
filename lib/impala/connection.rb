@@ -105,20 +105,26 @@ module Impala
     def execute(raw_query, query_options = {})
       raise ConnectionError.new("Connection closed") unless open?
 
-      query = sanitize_query(raw_query)
-      handle = send_query(query, query_options)
-
-      cursor = Cursor.new(handle, @service)
-      until cursor.query_done?
-        sleep query_options[:sleep_interval] || 0.2
+      begin
+        query = sanitize_query(raw_query)
+        handle = send_query(query, query_options)
+      rescue
+        puts $!.message
+        puts $!.backtrace.join("\n")
+        raise
       end
-      return cursor
-    rescue
-      puts $!.message
-      puts $!.backtrace.join("\n")
-      raise
-    ensure
-      return cursor
+
+      begin
+        cursor = Cursor.new(handle, @service)
+        until cursor.query_done?
+          sleep query_options[:sleep_interval] || 0.2
+        end
+        return cursor
+      rescue
+        puts $!.message
+        puts $!.backtrace.join("\n")
+        raise
+      end
     end
 
     def close_handle(handle)
