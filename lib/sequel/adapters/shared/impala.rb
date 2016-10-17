@@ -1,5 +1,7 @@
 module Sequel
   module Impala
+    Sequel::Database.set_shared_adapter_scheme :impala, self
+
     module DatabaseMethods
       # Do not use a composite primary key, foreign keys, or an
       # index when creating a join table, as Impala doesn't support those.
