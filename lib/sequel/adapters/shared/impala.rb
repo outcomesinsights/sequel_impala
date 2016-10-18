@@ -522,6 +522,31 @@ module Sequel
       def except(other, opts=OPTS)
         raise(InvalidOperation, "EXCEPT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to except is not supported") if opts[:from_self] == false
+        except_not_exists(other, opts)
+      end
+
+      def except_not_exists(other, opts=OPTS)
+        cols = columns.each_with_object({}) do |col, h|
+          h["lhs__#{col}".to_sym] = "rhs__#{col}".to_sym
+        end
+        rhs = from(Sequel.expr(other.from_self).as(:rhs))
+        from_self(alias: :lhs)
+          .exclude(rhs.where(cols).from_self.select(nil).exists)
+          .from_self(opts)
+      end
+
+      def except_left_join(other, opts=OPTS)
+        cols = columns.each_with_object({}) do |col, h|
+          h["lhs__#{col}".to_sym] = "rhs__#{col}".to_sym
+        end
+        from_self(alias: :lhs)
+          .left_outer_join(Sequel.as(other, :rhs), cols)
+          .where(rhs__criterion_id: nil)
+          .select_all(:lhs)
+          .from_self(opts)
+      end
+
+      def orig_except(other, opts=OPTS)
         cols = columns
         rhs = other.from_self.select_group(*other.columns).select_append(Sequel.expr(2).as(EXCEPT_SOURCE_COLUMN))
         from_self.
