@@ -3,6 +3,8 @@ module Sequel
     Sequel::Database.set_shared_adapter_scheme :impala, self
 
     module DatabaseMethods
+      extend Sequel::Database::ResetIdentifierMangling
+
       # Do not use a composite primary key, foreign keys, or an
       # index when creating a join table, as Impala doesn't support those.
       def create_join_table(hash, options=OPTS)
@@ -309,6 +311,10 @@ module Sequel
       end
       def identifier_output_method_default
         nil
+      end
+
+      def quote_identifiers_default
+        true
       end
 
       def search_path_table_schemas
