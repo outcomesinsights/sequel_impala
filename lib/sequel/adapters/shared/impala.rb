@@ -524,21 +524,23 @@ module Sequel
         raise(InvalidOperation, "EXCEPT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to except is not supported") if opts[:from_self] == false
 
-        strategy, key = @opts[:except_strategy]
+        strategy, *keys = @opts[:except_strategy]
         ds = from_self(:alias=>:t1)
 
         ds = case strategy
         when :not_exists
           ds.exclude(other.
               from_self(:alias=>:t2).
-              where(Sequel.qualify(:t1, key)=>Sequel.qualify(:t2, key)).
+              where(keys.map{|key| [Sequel.qualify(:t1, key), Sequel.qualify(:t2, key)]}).
               select(nil).
               exists)
         when :not_in
+          raise Sequel::Error, ":not_in EXCEPT strategy only supports a single key" unless keys.length == 1
+          key = keys.first
           ds.exclude(Sequel.qualify(:t1, key)=>other.from_self(:alias=>:t2).select(key))
         when :left_join
-          ds.left_join(other.from_self(:alias=>:t2).as(:t2), key=>key).
-            where(Sequel.qualify(:t2, key)=>nil).
+          ds.left_join(other.from_self(:alias=>:t2).as(:t2), keys.map{|key| [key, key]}).
+            where(Sequel.or(keys.map{|key| [Sequel.qualify(:t2, key), nil]})).
             select_all(:t1)
         else
           cols = columns
@@ -556,9 +558,9 @@ module Sequel
       # The strategy to use for EXCEPT emulation. By default, uses a GROUP BY emulation,
       # as that doesn't require you provide a key column, but you can use this to choose
       # a NOT EXISTS, NOT IN, or LEFT JOIN emulation, providing the unique key column.
-      def except_strategy(strategy, key)
+      def except_strategy(strategy, *keys)
         raise Sequel::Error, "invalid EXCEPT strategy: #{strategy.inspect}" unless EXCEPT_STRATEGIES.include?(strategy)
-        clone(:except_strategy=>[strategy, key])
+        clone(:except_strategy=>[strategy, *keys])
       end
 
       # Use INSERT OVERWRITE instead of INSERT INTO when inserting into this dataset:
