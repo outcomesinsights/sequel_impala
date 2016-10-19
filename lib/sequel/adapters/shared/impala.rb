@@ -410,6 +410,7 @@ module Sequel
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
       EXCEPT_SOURCE_COLUMN = :__source__
+      EXCEPT_STRATEGIES = [:not_exists, :not_in, :left_join, :group_by].freeze
       SELECT_VALUES = 'VALUES '.freeze
 
       Dataset.def_sql_method(self, :select, [['if opts[:values]', %w'values'], ['else', %w'with select distinct columns from join where group having compounds order limit']])
@@ -518,19 +519,46 @@ module Sequel
         get(Sequel::SQL::AliasedExpression.new(1, :one)).nil?
       end
 
-      # Emulate INTERSECT using a UNION ALL and checking for values in only the first table.
+      # Emulate EXCEPT using a chosen strategy and checking for values in only the first table.
       def except(other, opts=OPTS)
         raise(InvalidOperation, "EXCEPT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to except is not supported") if opts[:from_self] == false
-        cols = columns
-        rhs = other.from_self.select_group(*other.columns).select_append(Sequel.expr(2).as(EXCEPT_SOURCE_COLUMN))
-        from_self.
-          select_group(*cols).
-          select_append(Sequel.expr(1).as(EXCEPT_SOURCE_COLUMN)).
-          union(rhs, all: true).
-          select_group(*cols).
-          having{{count{}.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}.
-          from_self(opts)
+
+        strategy, key = @opts[:except_strategy]
+        ds = from_self(:alias=>:t1)
+
+        ds = case strategy
+        when :not_exists
+          ds.exclude(other.
+              from_self(:alias=>:t2).
+              where(Sequel.qualify(:t1, key)=>Sequel.qualify(:t2, key)).
+              select(nil).
+              exists)
+        when :not_in
+          ds.exclude(Sequel.qualify(:t1, key)=>other.from_self(:alias=>:t2).select(key))
+        when :left_join
+          ds.left_join(other.from_self(:alias=>:t2).as(:t2), key=>key).
+            where(Sequel.qualify(:t2, key)=>nil).
+            select_all(:t1)
+        else
+          cols = columns
+          rhs = other.from_self.select_group(*other.columns).select_append(Sequel.expr(2).as(EXCEPT_SOURCE_COLUMN))
+          ds.select_group(*cols).
+            select_append(Sequel.expr(1).as(EXCEPT_SOURCE_COLUMN)).
+            union(rhs, all: true).
+            select_group(*cols).
+            having{{count{}.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}
+        end
+
+        ds.from_self(opts)
+      end
+
+      # The strategy to use for EXCEPT emulation. By default, uses a GROUP BY emulation,
+      # as that doesn't require you provide a key column, but you can use this to choose
+      # a NOT EXISTS, NOT IN, or LEFT JOIN emulation, providing the unique key column.
+      def except_strategy(strategy, key)
+        raise Sequel::Error, "invalid EXCEPT strategy: #{strategy.inspect}" unless EXCEPT_STRATEGIES.include?(strategy)
+        clone(:except_strategy=>[strategy, key])
       end
 
       # Use INSERT OVERWRITE instead of INSERT INTO when inserting into this dataset:
