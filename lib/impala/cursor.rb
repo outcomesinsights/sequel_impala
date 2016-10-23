@@ -63,6 +63,8 @@ module Impala
     end
 
     def each
+      wait!
+
       while row = fetch_row
         yield row
       end
@@ -103,11 +105,19 @@ module Impala
       @open
     end
 
+    # Returns true if the query is done running, and results can be fetched.
     def query_done?
       [
         Protocol::Beeswax::QueryState::EXCEPTION,
         Protocol::Beeswax::QueryState::FINISHED
       ].include?(@service.get_state(@handle))
+    end
+
+    # Blocks until the query done running.
+    def wait!
+      until query_done?
+        sleep 0.1
+      end
     end
 
     # Returns true if there are any more rows to fetch.
@@ -117,6 +127,16 @@ module Impala
 
     def runtime_profile
       @service.GetRuntimeProfile(@handle)
+    end
+
+    def exec_summary
+      @service.GetExecSummary(@handle)
+    end
+
+    # Returns the progress for the query.
+    def progress
+      summary = exec_summary
+      summary.progress.num_completed_scan_ranges.to_f / summary.progress.total_scan_ranges.to_f
     end
 
     private
