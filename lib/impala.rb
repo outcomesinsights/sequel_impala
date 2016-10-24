@@ -16,6 +16,7 @@ rescue LoadError
   # gssapi not supported by operating system, continue as impala adapter
   # can be used in buffered (non-SASL) mode.
 end
+require 'impala/progress_reporter'
 require 'impala/cursor'
 require 'impala/connection'
 require 'impala/thrift_patch'

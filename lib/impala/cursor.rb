@@ -43,7 +43,7 @@ module Impala
 
     attr_reader :handle
 
-    def initialize(handle, service)
+    def initialize(handle, service, options = {})
       @handle = handle
       @service = service
 
@@ -52,6 +52,9 @@ module Impala
       @done = false
       @open = true
       @typecast_map = TYPECAST_MAP.dup
+      @options = options.dup
+      @progress_reporter = ProgressReporter.new(self, @options)
+      @poll_every = options.fetch(:poll_every, 0.1)
     end
 
     def columns
@@ -116,7 +119,8 @@ module Impala
     # Blocks until the query done running.
     def wait!
       until query_done?
-        sleep 0.1
+        periodic_callback
+        sleep @poll_every
       end
     end
 
@@ -140,6 +144,13 @@ module Impala
     end
 
     private
+
+    attr :progress_reporter
+
+    def periodic_callback
+      return unless progress_reporter.show?
+      progress_reporter.report
+    end
 
     def metadata
       @metadata ||= @service.get_results_metadata(@handle)

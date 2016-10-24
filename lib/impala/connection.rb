@@ -9,8 +9,8 @@ module Impala
       @host = host
       @port = port
       @connected = false
-      options[:transport] ||= :buffered
-      @options = options
+      @options = options.dup
+      @options[:transport] ||= :buffered
       open
     end
 
@@ -106,7 +106,7 @@ module Impala
       query = sanitize_query(raw_query)
       handle = send_query(query, query_options)
 
-      Cursor.new(handle, @service)
+      Cursor.new(handle, @service, @options)
     end
 
     def close_handle(handle)
