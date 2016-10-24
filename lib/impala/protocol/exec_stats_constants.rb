@@ -5,7 +5,7 @@
 #
 
 require 'thrift'
-require 'impala_service_types'
+require 'exec_stats_types'
 
 module Impala
   module Protocol

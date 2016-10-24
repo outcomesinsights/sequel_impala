@@ -39,9 +39,9 @@ module Impala
 
     NULL = 'NULL'.freeze
 
-    attr_reader :columns
-
     attr_reader :typecast_map
+
+    attr_reader :handle
 
     def initialize(handle, service)
       @handle = handle
@@ -52,7 +52,10 @@ module Impala
       @done = false
       @open = true
       @typecast_map = TYPECAST_MAP.dup
-      @columns = metadata.schema.fieldSchemas.map(&:name)
+    end
+
+    def columns
+      @columns ||= metadata.schema.fieldSchemas.map(&:name)
     end
 
     def inspect
@@ -60,6 +63,8 @@ module Impala
     end
 
     def each
+      wait!
+
       while row = fetch_row
         yield row
       end
@@ -100,6 +105,21 @@ module Impala
       @open
     end
 
+    # Returns true if the query is done running, and results can be fetched.
+    def query_done?
+      [
+        Protocol::Beeswax::QueryState::EXCEPTION,
+        Protocol::Beeswax::QueryState::FINISHED
+      ].include?(@service.get_state(@handle))
+    end
+
+    # Blocks until the query done running.
+    def wait!
+      until query_done?
+        sleep 0.1
+      end
+    end
+
     # Returns true if there are any more rows to fetch.
     def has_more?
       !@done || !@row_buffer.empty?
@@ -107,6 +127,16 @@ module Impala
 
     def runtime_profile
       @service.GetRuntimeProfile(@handle)
+    end
+
+    def exec_summary
+      @service.GetExecSummary(@handle)
+    end
+
+    # Returns the progress for the query.
+    def progress
+      summary = exec_summary
+      summary.progress.num_completed_scan_ranges.to_f / summary.progress.total_scan_ranges.to_f
     end
 
     private
@@ -119,8 +149,13 @@ module Impala
       fetch_batch until @done || @row_buffer.count >= BUFFER_SIZE
     end
 
+    def exceptional?
+      @service.get_state(@handle) == Protocol::Beeswax::QueryState::EXCEPTION
+    end
+
     def fetch_batch
       raise CursorError.new("Cursor has expired or been closed") unless @open
+      raise ConnectionError.new("The query was aborted") if exceptional?
 
       begin
         res = @service.fetch(@handle, false, BUFFER_SIZE)

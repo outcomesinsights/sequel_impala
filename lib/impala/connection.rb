@@ -2,8 +2,6 @@ module Impala
   # This object represents a connection to an Impala server. It can be used to
   # perform queries on the database.
   class Connection
-    LOG_CONTEXT_ID = "impala-ruby"
-
     attr_accessor :host, :port
 
     # Don't instantiate Connections directly; instead, use {Impala.connect}.
@@ -108,8 +106,11 @@ module Impala
       query = sanitize_query(raw_query)
       handle = send_query(query, query_options)
 
-      check_result(handle)
       Cursor.new(handle, @service)
+    end
+
+    def close_handle(handle)
+      @service.close(handle)
     end
 
     private
@@ -131,22 +132,7 @@ module Impala
         "#{key.upcase}=#{value}"
       end
 
-      @service.executeAndWait(query, LOG_CONTEXT_ID)
-    end
-
-    def check_result(handle)
-      state = @service.get_state(handle)
-      if state == Protocol::Beeswax::QueryState::EXCEPTION
-        close_handle(handle)
-        raise ConnectionError.new("The query was aborted")
-      end
-    rescue
-      close_handle(handle)
-      raise
-    end
-
-    def close_handle(handle)
-      @service.close(handle)
+      @service.query(query)
     end
   end
 end
