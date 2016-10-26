@@ -313,6 +313,10 @@ module Sequel
         nil
       end
 
+      def quote_identifiers_default
+        true
+      end
+
       def search_path_table_schemas
         @search_path_table_schemas ||= begin
           search_path = opts[:search_path]
