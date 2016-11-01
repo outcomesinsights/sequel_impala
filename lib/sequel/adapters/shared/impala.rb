@@ -202,14 +202,6 @@ module Sequel
         @search_path_table_schemas = nil
       end
 
-      # Creates a dataset that uses the VALUES clause:
-      #
-      #   DB.values([[1, 2], [3, 4]])
-      #   VALUES ((1, 2), (3, 4))
-      def values(v)
-        @default_dataset.clone(:values=>v)
-      end
-
       private
 
       def _tables(opts)
