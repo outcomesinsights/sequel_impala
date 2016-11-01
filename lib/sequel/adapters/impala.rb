@@ -57,10 +57,7 @@ module Sequel
             puts $!.backtrace.join("\n")
             raise
           ensure
-            if cursor && profile_name = opts[:profile_name]
-              profile = cursor.runtime_profile
-              Sequel.synchronize{@runtime_profiles[profile_name] = profile}
-            end
+            record_profile(cursor, opts)
             cursor.close if cursor && cursor.open?
           end
         end
@@ -71,6 +68,13 @@ module Sequel
       end
 
       private
+
+      def record_profile(cursor, opts)
+        if cursor && profile_name = opts[:profile_name]
+          profile = cursor.runtime_profile
+          Sequel.synchronize{@runtime_profiles[profile_name] = profile}
+        end
+      end
 
       def adapter_initialize
         @runtime_profiles = {}
