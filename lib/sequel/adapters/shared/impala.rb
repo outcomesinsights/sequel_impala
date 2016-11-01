@@ -202,6 +202,13 @@ module Sequel
         @search_path_table_schemas = nil
       end
 
+      # Sets options in the current db connection for each key/value pair
+      def set(opts)
+        opts.each do |key, value|
+          run("SET #{key}=#{value}")
+        end
+      end
+
       private
 
       def _tables(opts)
