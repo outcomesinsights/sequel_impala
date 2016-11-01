@@ -24,7 +24,6 @@ module Sequel
 
       set_adapter_scheme :impala
 
-      attr_reader :runtime_profiles
 
       # Connect to the Impala server.  Currently, only the :host and :port options
       # are respected, and they default to 'localhost' and 21000, respectively.
@@ -45,7 +44,11 @@ module Sequel
       def execute(sql, opts=OPTS)
         synchronize(opts[:server]) do |c|
           begin
-            cursor = log_yield(sql){c.execute(sql){}}
+            cursor = record_query_id(opts) do
+              log_yield(sql) do
+                c.execute(sql){}
+              end
+            end
             yield cursor if block_given?
             nil
           rescue *ImpalaExceptions => e
@@ -67,6 +70,10 @@ module Sequel
         Sequel.synchronize{@runtime_profiles[profile_name]}
       end
 
+      def query_id_for(query_id_name=:default)
+        Sequel.synchronize{@query_ids[query_id_name]}
+      end
+
       private
 
       def record_profile(cursor, opts)
@@ -76,8 +83,21 @@ module Sequel
         end
       end
 
+      def record_query_id(opts = OPTS)
+        start = Time.now if opts[:query_id_name]
+
+        cursor = yield
+
+        if cursor && query_id_name = opts[:query_id_name]
+          Sequel.synchronize{ @query_ids[query_id_name] = { query_id: cursor.handle.id, start_time: start } }
+        end
+
+        cursor
+      end
+
       def adapter_initialize
         @runtime_profiles = {}
+        @query_ids = {}
       end
 
       def connection_execute_method
@@ -153,6 +173,10 @@ module Sequel
 
       def profile(profile_name=:default)
         clone(:profile_name => profile_name)
+      end
+
+      def query_id(query_id_name=:default)
+        clone(:query_id_name => query_id_name)
       end
 
       private
