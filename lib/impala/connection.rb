@@ -106,7 +106,9 @@ module Impala
       query = sanitize_query(raw_query)
       handle = send_query(query, query_options)
 
-      Cursor.new(handle, @service, @options)
+      cursor = Cursor.new(handle, @service, @options)
+      cursor.wait!
+      cursor
     end
 
     def close_handle(handle)

@@ -66,8 +66,6 @@ module Impala
     end
 
     def each
-      wait!
-
       while row = fetch_row
         yield row
       end
