@@ -204,8 +204,8 @@ module Sequel
 
       # Sets options in the current db connection for each key/value pair
       def set(opts)
-        opts.each do |key, value|
-          run("SET #{key}=#{value}")
+        set_sql(opts).each do |sql|
+          run(sql)
         end
       end
 
@@ -398,6 +398,10 @@ module Sequel
         else
           :string
         end
+      end
+
+      def set_sql(opts)
+        opts.map { |k, v| "SET #{k}=#{v}" }
       end
     end
 
@@ -742,7 +746,6 @@ module Sequel
         sql << SELECT_VALUES
         expression_list_append(sql, opts[:values])
       end
-
     end
   end
 end
