@@ -3,14 +3,14 @@ Gem::Specification.new do |s|
   s.version = '1.1.0'
   s.platform = Gem::Platform::RUBY
   s.has_rdoc = true
-  s.extra_rdoc_files = ["README.md", "CHANGELOG", "LICENSE"]
+  s.extra_rdoc_files = ["LICENSE"]
   s.rdoc_options += ["--quiet", "--line-numbers", "--inline-source", '--title', 'sequel-impala: Sequel support for Impala database', '--main', 'README.md']
   s.license = "MIT"
   s.summary = "Sequel support for Impala database"
   s.author = "Ryan Duryea"
   s.email = "aguynamedryan@gmail.com"
   s.homepage = "http://github.com/outcomesinsights/sequel-impala"
-  s.files = %w(LICENSE CHANGELOG README.md Rakefile) + Dir["{spec,lib}/**/*.rb"] + Dir["lib/driver/*.jar"]
+  s.files = %w(LICENSE CHANGELOG.md README.md Rakefile) + Dir["{spec,lib}/**/*.rb"] + Dir["lib/driver/*.jar"]
   s.description = <<END
 sequel-impala adds an Impala shared adapter, impala adapter,
 and jdbc/hive2 adapter for connecting to Impala.  It includes
