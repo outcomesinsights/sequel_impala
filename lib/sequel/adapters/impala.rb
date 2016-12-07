@@ -52,12 +52,8 @@ module Sequel
             yield cursor if block_given?
             nil
           rescue *ImpalaExceptions => e
-            puts $!.message
-            puts $!.backtrace.join("\n")
             raise_error(e)
           rescue
-            puts $!.message
-            puts $!.backtrace.join("\n")
             raise
           ensure
             record_profile(cursor, opts)

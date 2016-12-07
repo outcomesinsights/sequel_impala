@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Removed
+- No longer puts full stack traces when errors occur
+
 ## [1.1.0] - 2016-11-08
 
 ### Added
