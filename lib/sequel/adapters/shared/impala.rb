@@ -401,7 +401,7 @@ module Sequel
       end
 
       def set_sql(opts)
-        opts.map { |k, v| "SET #{k}=#{v}" }
+        opts.map { |k, v| "SET #{k}='#{v}'" }
       end
     end
 
