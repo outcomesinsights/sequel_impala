@@ -505,7 +505,7 @@ module Sequel
       # Implicitly qualify tables if using the :search_path database option.
       def from(*)
         ds = super
-        ds.opts[:from].map!{|t| db.implicit_qualify(t)}
+        ds.opts[:from] = ds.opts[:from].map{|t| db.implicit_qualify(t)}
         ds
       end
 
