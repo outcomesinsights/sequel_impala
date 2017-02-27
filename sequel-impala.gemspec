@@ -20,9 +20,9 @@ END
   s.add_dependency('sequel', '~> 4.39')
   s.add_dependency('thrift', '~> 0.9')
   s.add_dependency('gssapi', '~> 1.2')
-  s.add_development_dependency('rake', '~> 0')
+  s.add_development_dependency('rake', '> 0')
   s.add_development_dependency("minitest", '~> 5.7')
-  s.add_development_dependency("minitest-hooks", '~> 0')
-  s.add_development_dependency("minitest-shared_description", '~> 0')
-  s.add_development_dependency("activesupport", '~> 0')
+  s.add_development_dependency("minitest-hooks", '> 0')
+  s.add_development_dependency("minitest-shared_description", '> 0')
+  s.add_development_dependency("activesupport", '~> 4')
 end
