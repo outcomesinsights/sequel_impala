@@ -327,6 +327,10 @@ module Sequel
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
           row[:type].to_s.strip !~ /VIEW/
         end
+      rescue Sequel::DatabaseError
+        # This can be raised for Hive tables that Impala returns via SHOW TABLES,
+        # but which it raises an exception when you try to DESCRIBE them.
+        false
       end
 
       def load_data_sql(path, table, options)
