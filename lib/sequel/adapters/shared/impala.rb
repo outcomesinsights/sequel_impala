@@ -693,7 +693,32 @@ module Sequel
         sql
       end
 
+      def with(name, dataset, opts={})
+        if has_cte?(dataset)
+          s, ds = hoist_cte(dataset)
+          s.with(name, ds, opts)
+        else
+          super
+        end
+      end
+
+      def with_recursive(name, nonrecursive, recursive, opts={})
+        if has_cte?(nonrecursive)
+          s, ds = hoist_cte(nonrecursive)
+          s.with_recursive(name, ds, recursive, opts)
+        elsif has_cte?(recursive)
+          s, ds = hoist_cte(recursive)
+          s.with_recursive(name, nonrecursive, ds, opts)
+        else
+          super
+        end
+      end
+
       private
+
+      def has_cte?(ds)
+        ds.is_a?(Dataset) && ds.opts[:with]
+      end
 
       # Impala doesn't handle the DEFAULT keyword used in inserts, as all default
       # values in Impala are NULL, so just use a NULL value.
