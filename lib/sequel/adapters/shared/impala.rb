@@ -582,13 +582,13 @@ module Sequel
         false
       end
 
-      # Emulate INTERSECT using a UNION ALL and checking for values in both tables.
+      # Emulate INTERSECT using a join and checking for values in both tables.
       def intersect(other, opts=OPTS)
         raise(InvalidOperation, "INTERSECT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to intersect is not supported") if opts[:from_self] == false
         cols = columns
         (from_self(alias: :l)
-          .join(other, cols)
+          .join(other){|lj, j, _| Sequel.&(*cols.map{|c| Sequel.expr(Sequel.qualify(lj, c)=>Sequel.qualify(j, c)) | {Sequel.qualify(lj, c)=>nil, Sequel.qualify(j, c)=>nil}})}
           .select_all(:l))
           .from_self(opts)
       end
@@ -709,6 +709,18 @@ module Sequel
         elsif has_cte?(recursive)
           s, ds = hoist_cte(recursive)
           s.with_recursive(name, nonrecursive, ds, opts)
+        else
+          super
+        end
+      end
+
+      protected
+
+      # Add the dataset to the list of compounds
+      def compound_clone(type, dataset, opts)
+        if has_cte?(dataset)
+          s, ds = hoist_cte(dataset)
+          s.compound_clone(type, ds, opts)
         else
           super
         end
