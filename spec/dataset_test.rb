@@ -1003,10 +1003,10 @@ describe "Sequel::Dataset DSL support" do
     @ds.exclude([:a, :b]=>[]).all.must_equal []
 
     pr = proc{|r| r.is_a?(Integer) ? (r != 0) : r}
-    pr[@ds.get(Sequel.expr(:a=>[]))].must_equal nil
-    pr[@ds.get(~Sequel.expr(:a=>[]))].must_equal nil
-    pr[@ds.get(Sequel.expr([:a, :b]=>[]))].must_equal nil
-    pr[@ds.get(~Sequel.expr([:a, :b]=>[]))].must_equal nil
+    assert_nil(pr[@ds.get(Sequel.expr(:a=>[]))])
+    assert_nil(pr[@ds.get(~Sequel.expr(:a=>[]))])
+    assert_nil(pr[@ds.get(Sequel.expr([:a, :b]=>[]))])
+    assert_nil(pr[@ds.get(~Sequel.expr([:a, :b]=>[]))])
   end
 
   it "should work empty arrays with nulls and the empty_array_ignore_nulls extension" do
@@ -1245,7 +1245,7 @@ describe "Emulated functions" do
   end
 
   it "Sequel.char_length should return the length of characters in the string" do
-    @ds.get(Sequel.char_length(:a)).must_equal nil
+    assert_nil(@ds.get(Sequel.char_length(:a)))
     @ds.insert(:a=>'foo')
     @ds.get(Sequel.char_length(:a)).must_equal 3
   end
@@ -1256,7 +1256,7 @@ describe "Emulated functions" do
   end
 
   it "Sequel.trim should return the string with spaces trimmed from both sides" do
-    @ds.get(Sequel.trim(:a)).must_equal nil
+    assert_nil(@ds.get(Sequel.trim(:a)))
     @ds.insert(:a=>'foo')
     @ds.get(Sequel.trim(:a)).must_equal 'foo'
   end

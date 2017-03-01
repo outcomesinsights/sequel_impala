@@ -106,12 +106,12 @@ describe "Prepared Statements and Bound Arguments" do
   end
 
   it "should have insert return primary key value when using bound arguments" do
-    @ds.call(:insert, {:n=>20}, :numb=>:$n, :id=>2).must_equal nil
+    assert_nil(@ds.call(:insert, {:n=>20}, :numb=>:$n, :id=>2))
     @ds.filter(:id=>2).first[:numb].must_equal 20
   end
 
   it "should support bound variables with delete" do
-    @ds.filter(:numb=>:$n).call(:delete, :n=>10).must_equal nil
+    assert_nil(@ds.filter(:numb=>:$n).call(:delete, :n=>10))
     @ds.count.must_equal 0
   end
 
@@ -204,13 +204,13 @@ describe "Prepared Statements and Bound Arguments" do
 
   it "should have insert return primary key value when using prepared statements" do
     @ds.prepare(:insert, :insert_n, :numb=>:$n, :id=>2)
-    @db.call(:insert_n, :id=>2, :n=>20).must_equal nil
+    assert_nil(@db.call(:insert_n, :id=>2, :n=>20))
     @ds.filter(:id=>2).first[:numb].must_equal 20
   end
 
   it "should support prepared statements with delete" do
     @ds.filter(:numb=>:$n).prepare(:delete, :delete_n)
-    @db.call(:delete_n, :n=>10).must_equal nil
+    assert_nil(@db.call(:delete_n, :n=>10))
     @ds.count.must_equal 0
   end
 
@@ -280,10 +280,10 @@ describe "Dataset#unbind" do
   it "should unbind values assigned to equality and inequality statements" do
     @ct[Integer, 10]
     @u[@ds.filter(:c=>10)].must_equal(:c=>10)
-    @u[@ds.exclude(:c=>10)].must_equal nil
-    @u[@ds.filter{c < 10}].must_equal nil
+    assert_nil(@u[@ds.exclude(:c=>10)])
+    assert_nil(@u[@ds.filter{c < 10}])
     @u[@ds.filter{c <= 10}].must_equal(:c=>10)
-    @u[@ds.filter{c > 10}].must_equal nil
+    assert_nil(@u[@ds.filter{c > 10}])
     @u[@ds.filter{c >= 10}].must_equal(:c=>10)
   end
 
@@ -316,12 +316,12 @@ describe "Dataset#unbind" do
     end
     @ds.insert(:a=>2, :b=>0, :c=>3, :d=>5)
     @u[@ds.filter{a > 1}.and{b < 2}.or(:c=>3).and(Sequel.case({~Sequel.expr(:d=>4)=>1}, 0) => 1)].must_equal(:a=>2, :b=>0, :c=>3, :d=>5)
-    @u[@ds.filter{a > 1}.and{b < 2}.or(:c=>3).and(Sequel.case({~Sequel.expr(:d=>5)=>1}, 0) => 1)].must_equal nil
+    assert_nil(@u[@ds.filter{a > 1}.and{b < 2}.or(:c=>3).and(Sequel.case({~Sequel.expr(:d=>5)=>1}, 0) => 1)])
   end
 
   it "should handle case where the same variable has the same value in multiple places " do
     @ct[Integer, 1]
     @u[@ds.filter{c > 1}.or{c < 1}.invert].must_equal(:c=>1)
-    @u[@ds.filter{c > 1}.or{c < 1}].must_equal nil
+    assert_nil(@u[@ds.filter{c > 1}.or{c < 1}])
   end
 end

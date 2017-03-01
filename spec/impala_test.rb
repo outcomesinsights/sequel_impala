@@ -54,19 +54,19 @@ describe "Impala dataset" do
   end
 
   it "#delete should emulate DELETE" do
-    @ds.where(:number=>2).delete.must_equal nil
+    assert_nil(@ds.where(:number=>2).delete)
     @ds.count.must_equal 1
-    @ds.where(:number=>1).delete.must_equal nil
+    assert_nil(@ds.where(:number=>1).delete)
     @ds.count.must_equal 0
 
     @ds.insert(1)
     @ds.count.must_equal 1
-    @ds.delete.must_equal nil
+    assert_nil(@ds.delete)
     @ds.count.must_equal 0
   end
 
   it "#truncate should emulate TRUNCATE" do
-    @ds.truncate.must_equal nil
+    assert_nil(@ds.truncate)
     @ds.count.must_equal 0
   end
 

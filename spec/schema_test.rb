@@ -73,7 +73,7 @@ describe "Database schema parser" do
 
   it "should make :default nil for a NULL default" do
     DB.create_table!(:items){Integer :number}
-    DB.schema(:items).first.last[:default].must_equal nil
+    assert_nil(DB.schema(:items).first.last[:default])
   end
 
   it "should parse types from the schema properly" do
