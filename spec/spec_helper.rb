@@ -2,6 +2,10 @@ require 'rubygems'
 require 'logger'
 require 'sequel'
 
+module Minitest
+  @@installed_at_exit = true
+end if defined?(M)
+
 gem 'minitest'
 require 'minitest/autorun'
 require 'minitest/hooks/default'

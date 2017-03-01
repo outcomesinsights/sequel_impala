@@ -14,7 +14,6 @@ module Sequel
 
     module Hive2
       module DatabaseMethods
-        extend Sequel::Database::ResetIdentifierMangling
         include Sequel::Impala::DatabaseMethods
       end
 

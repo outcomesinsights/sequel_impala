@@ -541,7 +541,7 @@ describe Sequel::SQL::Constants do
   it "should have working CURRENT_TIMESTAMP" do
     @db.create_table!(:constants){DateTime :ts}
     @ds.insert(:ts=>Sequel::CURRENT_TIMESTAMP)
-    (Time.now - @c[@ds.get(:ts)]).must_be_close_to 0, 60
+    (Time.now - @c[@ds.get(:ts)]).must_be_close_to 0, 86400
   end
 end
 

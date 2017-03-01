@@ -17,7 +17,7 @@ and jdbc/hive2 adapter for connecting to Impala.  It includes
 modified versions of the impala and jdbc-hive2 gems that have
 been updated, tested, and optimized.
 END
-  s.add_dependency('sequel', '~> 4.39')
+  s.add_dependency('sequel', '~> 4.42')
   s.add_dependency('thrift', '~> 0.9')
   s.add_dependency('gssapi', '~> 1.2')
   s.add_development_dependency('rake', '> 0')

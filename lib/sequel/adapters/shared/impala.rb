@@ -1,9 +1,11 @@
+Sequel.require %w'unmodified_identifiers', 'adapters/utils'
+
 module Sequel
   module Impala
     Sequel::Database.set_shared_adapter_scheme :impala, self
 
     module DatabaseMethods
-      extend Sequel::Database::ResetIdentifierMangling
+      include UnmodifiedIdentifiers::DatabaseMethods
 
       # Do not use a composite primary key, foreign keys, or an
       # index when creating a join table, as Impala doesn't support those.
@@ -303,19 +305,6 @@ module Sequel
         "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}"
       end
 
-      # Impala folds identifiers to lowercase, quoted or not, and is actually
-      # case insensitive, so don't use an identifier input or output method.
-      def identifier_input_method_default
-        nil
-      end
-      def identifier_output_method_default
-        nil
-      end
-
-      def quote_identifiers_default
-        true
-      end
-
       def search_path_table_schemas
         @search_path_table_schemas ||= begin
           search_path = opts[:search_path]
@@ -338,6 +327,10 @@ module Sequel
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
           row[:type].to_s.strip !~ /VIEW/
         end
+      rescue Sequel::DatabaseError
+        # This can be raised for Hive tables that Impala returns via SHOW TABLES,
+        # but which it raises an exception when you try to DESCRIBE them.
+        false
       end
 
       def load_data_sql(path, table, options)
@@ -406,6 +399,8 @@ module Sequel
     end
 
     module DatasetMethods
+      include UnmodifiedIdentifiers::DatasetMethods
+
       BACKTICK = '`'.freeze
       APOS = "'".freeze
       STRING_ESCAPE_RE = /([\\'])/
@@ -488,7 +483,9 @@ module Sequel
       # Emulate DELETE using INSERT OVERWRITE selecting all columns from
       # the table, with a reversed condition used for WHERE.
       def delete_sql
-        sql = "INSERT OVERWRITE "
+        return @opts[:prepared_sql] if @opts[:prepared_sql]
+        sql = @opts[:append_sql] || sql_string_origin
+        sql << "INSERT OVERWRITE "
         source_list_append(sql, opts[:from])
         sql << " SELECT * FROM "
         source_list_append(sql, opts[:from])
@@ -585,14 +582,15 @@ module Sequel
         false
       end
 
-      # Emulate INTERSECT using a UNION ALL and checking for values in both tables.
+      # Emulate INTERSECT using a join and checking for values in both tables.
       def intersect(other, opts=OPTS)
         raise(InvalidOperation, "INTERSECT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to intersect is not supported") if opts[:from_self] == false
-        cols = columns
+        cols = columns.zip(other.columns)
         (from_self(alias: :l)
-          .join(other, cols)
+          .join(other){|lj, j, _| Sequel.&(*cols.map{|c1,c2| Sequel.expr(Sequel.qualify(lj, c2)=>Sequel.qualify(j, c1)) | {Sequel.qualify(lj, c2)=>nil, Sequel.qualify(j, c1)=>nil}})}
           .select_all(:l))
+          .distinct
           .from_self(opts)
       end
 
@@ -696,7 +694,44 @@ module Sequel
         sql
       end
 
+      def with(name, dataset, opts={})
+        if has_cte?(dataset)
+          s, ds = hoist_cte(dataset)
+          s.with(name, ds, opts)
+        else
+          super
+        end
+      end
+
+      def with_recursive(name, nonrecursive, recursive, opts={})
+        if has_cte?(nonrecursive)
+          s, ds = hoist_cte(nonrecursive)
+          s.with_recursive(name, ds, recursive, opts)
+        elsif has_cte?(recursive)
+          s, ds = hoist_cte(recursive)
+          s.with_recursive(name, nonrecursive, ds, opts)
+        else
+          super
+        end
+      end
+
+      protected
+
+      # Add the dataset to the list of compounds
+      def compound_clone(type, dataset, opts)
+        if has_cte?(dataset)
+          s, ds = hoist_cte(dataset)
+          s.compound_clone(type, ds, opts)
+        else
+          super
+        end
+      end
+
       private
+
+      def has_cte?(ds)
+        ds.is_a?(Dataset) && ds.opts[:with]
+      end
 
       # Impala doesn't handle the DEFAULT keyword used in inserts, as all default
       # values in Impala are NULL, so just use a NULL value.
