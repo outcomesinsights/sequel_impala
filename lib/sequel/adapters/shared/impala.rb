@@ -1,9 +1,11 @@
+Sequel.require %w'unmodified_identifiers', 'adapters/utils'
+
 module Sequel
   module Impala
     Sequel::Database.set_shared_adapter_scheme :impala, self
 
     module DatabaseMethods
-      extend Sequel::Database::ResetIdentifierMangling
+      include UnmodifiedIdentifiers::DatabaseMethods
 
       # Do not use a composite primary key, foreign keys, or an
       # index when creating a join table, as Impala doesn't support those.
@@ -303,19 +305,6 @@ module Sequel
         "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}"
       end
 
-      # Impala folds identifiers to lowercase, quoted or not, and is actually
-      # case insensitive, so don't use an identifier input or output method.
-      def identifier_input_method_default
-        nil
-      end
-      def identifier_output_method_default
-        nil
-      end
-
-      def quote_identifiers_default
-        true
-      end
-
       def search_path_table_schemas
         @search_path_table_schemas ||= begin
           search_path = opts[:search_path]
@@ -406,6 +395,8 @@ module Sequel
     end
 
     module DatasetMethods
+      include UnmodifiedIdentifiers::DatasetMethods
+
       BACKTICK = '`'.freeze
       APOS = "'".freeze
       STRING_ESCAPE_RE = /([\\'])/
