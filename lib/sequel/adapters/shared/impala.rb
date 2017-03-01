@@ -488,7 +488,9 @@ module Sequel
       # Emulate DELETE using INSERT OVERWRITE selecting all columns from
       # the table, with a reversed condition used for WHERE.
       def delete_sql
-        sql = "INSERT OVERWRITE "
+        return @opts[:prepared_sql] if @opts[:prepared_sql]
+        sql = @opts[:append_sql] || sql_string_origin
+        sql << "INSERT OVERWRITE "
         source_list_append(sql, opts[:from])
         sql << " SELECT * FROM "
         source_list_append(sql, opts[:from])
