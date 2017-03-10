@@ -154,7 +154,7 @@ module Sequel
         execute(sql) do |conn, result|
           op_handle = result.operationHandle
           columns, type_nums = conn.get_column_info(op_handle)
-          @columns = columns.map!{|c| output_identifier(c)}
+          self.columns = columns.map!{|c| output_identifier(c)}
           conversion_procs = db.conversion_procs
           convertors = conversion_procs.values_at(*type_nums)
           #cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)

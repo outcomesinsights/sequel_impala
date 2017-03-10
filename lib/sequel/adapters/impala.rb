@@ -157,7 +157,7 @@ module Sequel
 
       def fetch_rows(sql)
         execute(sql, @opts) do |cursor|
-          @columns = cursor.columns.map!{|c| output_identifier(c)}
+          self.columns = cursor.columns.map!{|c| output_identifier(c)}
           cursor.typecast_map['timestamp'] = db.method(:to_application_timestamp)
           cursor.each do |row|
             yield row
