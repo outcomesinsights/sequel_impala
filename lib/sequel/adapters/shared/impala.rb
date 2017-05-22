@@ -408,9 +408,9 @@ module Sequel
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
       CONSTANT_LITERAL_MAP = {:CURRENT_TIMESTAMP=>'now()'.freeze}.freeze
-      PAREN_OPEN = Dataset::PAREN_OPEN
-      PAREN_CLOSE = Dataset::PAREN_CLOSE
-      SPACE = Dataset::SPACE
+      PAREN_OPEN = '('.freeze
+      PAREN_CLOSE = ')'.freeze
+      SPACE = ' '.freeze
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
       EXCEPT_SOURCE_COLUMN = :__source__
