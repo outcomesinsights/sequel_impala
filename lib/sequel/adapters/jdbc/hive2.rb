@@ -15,6 +15,11 @@ module Sequel
     module Hive2
       module DatabaseMethods
         include Sequel::Impala::DatabaseMethods
+
+        # Recognize wrapped java.net.SocketExceptions as disconnect errors
+        def disconnect_error?(exception, opts)
+          super || exception.message =~ /\AJava::JavaSql::SQLException: org\.apache\.thrift\.transport\.TTransportException: java\.net\.SocketException/
+        end
       end
 
       class Dataset < JDBC::Dataset
