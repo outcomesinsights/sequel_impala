@@ -51,7 +51,9 @@ module Impala
       STILL_EXECUTING_STATUS = 2
       ERROR_STATUS = 3
       INVALID_HANDLE_STATUS = 4
+      remove_const(:VALUE_MAP) if const_defined?(:VALUE_MAP)
       VALUE_MAP = {0 => "SUCCESS_STATUS", 1 => "SUCCESS_WITH_INFO_STATUS", 2 => "STILL_EXECUTING_STATUS", 3 => "ERROR_STATUS", 4 => "INVALID_HANDLE_STATUS"}
+      remove_const(:VALID_VALUES) if const_defined?(:VALID_VALUES)
       VALID_VALUES = Set.new([SUCCESS_STATUS, SUCCESS_WITH_INFO_STATUS, STILL_EXECUTING_STATUS, ERROR_STATUS, INVALID_HANDLE_STATUS]).freeze
     end
 
@@ -856,6 +858,7 @@ module Impala
       ERRORCODE = 4
       ERRORMESSAGE = 5
 
+      remove_const(:FIELDS) if const_defined?(:FIELDS)
       FIELDS = {
         STATUSCODE => {:type => ::Thrift::Types::I32, :name => 'statusCode', :enum_class => ::Impala::Protocol::TStatusCode},
         INFOMESSAGES => {:type => ::Thrift::Types::LIST, :name => 'infoMessages', :element => {:type => ::Thrift::Types::STRING}, :optional => true},
