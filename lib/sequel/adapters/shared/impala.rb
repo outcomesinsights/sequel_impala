@@ -555,7 +555,7 @@ module Sequel
             select_append(Sequel.expr(1).as(EXCEPT_SOURCE_COLUMN)).
             union(rhs, all: true).
             select_group(*cols).
-            having{{count{}.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}
+            having{{count.function.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}
         end
 
         ds.from_self(opts)
