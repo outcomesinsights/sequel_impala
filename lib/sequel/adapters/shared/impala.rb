@@ -408,9 +408,9 @@ module Sequel
       BOOL_TRUE = 'true'.freeze
       BOOL_FALSE = 'false'.freeze
       CONSTANT_LITERAL_MAP = {:CURRENT_TIMESTAMP=>'now()'.freeze}.freeze
-      PAREN_OPEN = Dataset::PAREN_OPEN
-      PAREN_CLOSE = Dataset::PAREN_CLOSE
-      SPACE = Dataset::SPACE
+      PAREN_OPEN = '('.freeze
+      PAREN_CLOSE = ')'.freeze
+      SPACE = ' '.freeze
       NOT = 'NOT '.freeze
       REGEXP = ' REGEXP '.freeze
       EXCEPT_SOURCE_COLUMN = :__source__
@@ -555,7 +555,7 @@ module Sequel
             select_append(Sequel.expr(1).as(EXCEPT_SOURCE_COLUMN)).
             union(rhs, all: true).
             select_group(*cols).
-            having{{count{}.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}
+            having{{count.function.* => 1, min(EXCEPT_SOURCE_COLUMN) => 1}}
         end
 
         ds.from_self(opts)

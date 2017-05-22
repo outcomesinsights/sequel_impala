@@ -95,6 +95,10 @@ module Sequel
         :execute
       end
 
+      def dataset_class_default
+        Dataset
+      end
+
       # Impala raises IOError if it detects a problem on the connection, and
       # in most cases that results in an unusable connection, so treat it as a
       # disconnect error so Sequel will reconnect.
@@ -129,8 +133,6 @@ module Sequel
 
     class Dataset < Sequel::Dataset
       include Impala::DatasetMethods
-
-      Database::DatasetClass = self
 
       APOS = "'".freeze
       STRING_ESCAPES = {

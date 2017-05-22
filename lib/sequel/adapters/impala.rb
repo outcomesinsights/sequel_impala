@@ -72,6 +72,10 @@ module Sequel
 
       private
 
+      def dataset_class_default
+        Dataset
+      end
+
       def record_profile(cursor, opts)
         if cursor && profile_name = opts[:profile_name]
           profile = cursor.runtime_profile
@@ -134,8 +138,6 @@ module Sequel
 
     class Dataset < Sequel::Dataset
       include DatasetMethods
-
-      Database::DatasetClass = self
 
       APOS = "'".freeze
       STRING_ESCAPES = {
