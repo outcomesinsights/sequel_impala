@@ -586,10 +586,13 @@ module Sequel
       def intersect(other, opts=OPTS)
         raise(InvalidOperation, "INTERSECT ALL not supported") if opts[:all]
         raise(InvalidOperation, "The :from_self=>false option to intersect is not supported") if opts[:from_self] == false
+        raise(Error, "Attempt to INTERSECT on dataset with no columns: #{inspect}") if columns.empty?
+        raise(Error, "Attempt to INTERSECT other dataset with no columns: #{other.inspect}") if other.columns.empty?
+
         cols = columns.zip(other.columns)
-        (from_self(alias: :l)
+        from_self(alias: :l)
           .join(other){|lj, j, _| Sequel.&(*cols.map{|c1,c2| Sequel.expr(Sequel.qualify(lj, c2)=>Sequel.qualify(j, c1)) | {Sequel.qualify(lj, c2)=>nil, Sequel.qualify(j, c1)=>nil}})}
-          .select_all(:l))
+          .select_all(:l)
           .distinct
           .from_self(opts)
       end
