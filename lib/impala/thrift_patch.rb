@@ -24,10 +24,24 @@ module Thrift
       # so we'll hope keep alive works under Mac OS X, but in production
       # we Dockerize Jigsaw, so these options should be available when
       # we're running on Linux
-      if defined? ::Socket::SOL_TCP
-        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPIDLE, 60)
-        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPINTVL, 10)
-        s.setsockopt(::Socket::SOL_TCP, ::Socket::TCP_KEEPCNT, 5)
+      if defined?(::Socket::SOL_TCP)
+        opts = {}
+
+        if defined?(::Socket::TCP_KEEPIDLE)
+          opts[::Socket::TCP_KEEPIDLE] = 60
+        end
+
+        if defined?(::Socket::TCP_KEEPINTVL)
+          opts[::Socket::TCP_KEEPINTVL] = 10
+        end
+
+        if defined?(::Socket::TCP_KEEPCNT)
+          opts[::Socket::TCP_KEEPCNT] = 5
+        end
+
+        opts.each do |opt, value|
+          s.setsockopt(::Socket::SOL_TCP, opt, value)
+        end
       end
     end
   end
