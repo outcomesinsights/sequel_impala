@@ -20,6 +20,12 @@ module Sequel
         def disconnect_error?(exception, opts)
           super || exception.message =~ /\AJava::JavaSql::SQLException: org\.apache\.thrift\.transport\.TTransportException: java\.net\.SocketException/
         end
+
+        def disconnect_connection(c)
+          super
+        rescue java.sql.SQLException
+          nil
+        end
       end
 
       class Dataset < JDBC::Dataset
