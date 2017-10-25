@@ -20,10 +20,9 @@ module Sequel
       DisconnectExceptions = [
         ::Thrift::TransportException,
         IOError
-      ]
+      ].freeze
 
       set_adapter_scheme :impala
-
 
       # Connect to the Impala server.  Currently, only the :host and :port options
       # are respected, and they default to 'localhost' and 21000, respectively.
