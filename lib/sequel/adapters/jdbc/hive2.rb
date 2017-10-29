@@ -16,9 +16,9 @@ module Sequel
       module DatabaseMethods
         include Sequel::Impala::DatabaseMethods
 
-        # Recognize wrapped java.net.SocketExceptions as disconnect errors
+        # Recognize wrapped and unwrapped java.net.SocketExceptions as disconnect errors
         def disconnect_error?(exception, opts)
-          super || exception.message =~ /\AJava::JavaSql::SQLException: org\.apache\.thrift\.transport\.TTransportException: java\.net\.SocketException/
+          super || exception.message =~ /\A(Java::JavaSql::SQLException: )?org\.apache\.thrift\.transport\.TTransportException: java\.net\.SocketException/
         end
 
         def disconnect_connection(c)
