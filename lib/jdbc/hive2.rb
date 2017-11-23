@@ -9,8 +9,11 @@ module Jdbc
       %W(
         driver/libfb303-0.9.0.jar
         driver/slf4j-api-1.7.5.jar
-        driver/hadoop-common-2.6.0.jar
+        driver/hadoop-common-2.9.0.jar
+        driver/hadoop-auth-2.9.0.jar
         driver/hadoop-core-2.6.0.jar
+        driver/commons-configuration-1.10.jar
+        driver/commons-collections-3.2.1.jar
         driver/commons-logging-1.2.jar
         driver/hive-exec-1.1.0.jar
         driver/hive-jdbc-1.1.0.jar
@@ -18,6 +21,9 @@ module Jdbc
         driver/hive-service-1.1.0.jar
         driver/httpcore-4.3.jar
         driver/httpclient-4.3.jar
+        driver/log4j-1.2.17.jar
+        driver/woodstox-core-asl-4.4.1.jar
+        driver/stax2-api-3.1.4.jar
       )
     end
 
