@@ -44,7 +44,7 @@ module Sequel
         synchronize(opts[:server]) do |c|
           begin
             cursor = record_query_id(opts) do
-              log_yield(sql) do
+              log_connection_yield(sql, c) do
                 c.execute(sql){}
               end
             end

@@ -1,4 +1,4 @@
-Sequel.require %w'unmodified_identifiers', 'adapters/utils'
+require 'sequel/adapters/utils/unmodified_identifiers'
 
 module Sequel
   module Impala
@@ -69,10 +69,8 @@ module Sequel
         if ds = opts[:dataset]
           ds = ds.naked
         else
-          ds = dataset.clone
-          ds.identifier_input_method = identifier_input_method
+          ds = dataset
         end
-        ds.identifier_output_method = nil
         ds.with_sql("DESCRIBE #{'FORMATTED ' if opts[:formatted]} ?", table).all
       end
 
@@ -188,10 +186,6 @@ module Sequel
         _tables(opts).reject{|t| is_valid_table?(t, opts)}
       end
 
-      def invalidate_table_schemas
-        @search_path_table_schemas = nil
-      end
-
       # Creates a dataset that uses the VALUES clause:
       #
       #   DB.values([[1, 2], [3, 4]])
@@ -276,7 +270,7 @@ module Sequel
       end
 
       def create_table_parameters_sql(options)
-        sql = ""
+        sql = String.new
         sql << " COMMENT #{literal(options[:comment])}" if options[:comment]
         if options[:field_term] || options[:line_term]
           sql << " ROW FORMAT DELIMITED"
@@ -339,13 +333,12 @@ module Sequel
 
       # Metadata queries on JDBC use uppercase keys, so set the identifier
       # output method to downcase so that metadata queries work correctly.
-      def metadata_dataset
-        @metadata_dataset ||= (
-          ds = dataset;
-          ds.identifier_input_method = identifier_input_method_default;
-          ds.identifier_output_method = :downcase;
-          ds
-        )
+      def _metadata_dataset
+        super.with_extend do
+          def output_identifier(v)
+            v.downcase.to_sym
+          end
+        end
       end
 
       # Impala doesn't like the word "integer"
@@ -502,8 +495,7 @@ module Sequel
       # Implicitly qualify tables if using the :search_path database option.
       def from(*)
         ds = super
-        ds.opts[:from] = ds.opts[:from].map{|t| db.implicit_qualify(t)}
-        ds
+        ds.clone(:from => ds.opts[:from].map{|t| db.implicit_qualify(t)})
       end
 
       # Implicitly qualify tables if using the :search_path database option.
@@ -514,9 +506,7 @@ module Sequel
       # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns
       # from the table, with WHERE false.
       def truncate_sql
-        ds = clone
-        ds.opts.delete(:where)
-        ds.delete_sql
+        unfiltered.delete_sql
       end
 
       # Don't remove an order, because that breaks things when offsets
@@ -667,7 +657,8 @@ module Sequel
       # set the value to the new value if the row matches WHERE conditions of
       # the current dataset, otherwise use the existing value.
       def update_sql(values)
-        sql = "INSERT OVERWRITE "
+        sql = String.new
+        sql << "INSERT OVERWRITE "
         source_list_append(sql, opts[:from])
         sql << " SELECT "
         comma = false

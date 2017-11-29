@@ -75,7 +75,7 @@ module Sequel
         synchronize(opts[:server]) do |c|
           begin
             puts sql
-            r = log_yield(sql){c.execute(sql)}
+            r = log_connection_yield(sql, c){c.execute(sql)}
             yield(c, r) if block_given?
             nil
           rescue *RbhiveExceptions => e
