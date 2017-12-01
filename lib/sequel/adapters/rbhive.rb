@@ -58,7 +58,7 @@ module Sequel
         conn = RBHive::TCLIConnection.new(opts[:host]||'localhost', opts[:port]||21050, opts, opts[:hive_logger] || NullLogger)
         conn.open
         conn.open_session
-        force_database(conn)
+        force_database(conn, opts[:database])
       end
 
       def database_error_classes

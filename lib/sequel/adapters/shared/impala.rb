@@ -26,10 +26,6 @@ module Sequel
         run(compute_stats_sql(table_name))
       end
 
-      def connect(opts)
-        force_database(super)
-      end
-
       # Create a database/schema in Imapala.
       #
       # Options:
@@ -394,8 +390,8 @@ module Sequel
         opts.map { |k, v| "SET #{k}=#{v}" }
       end
 
-      def force_database(conn)
-        if database = @opts[:database]
+      def force_database(conn, database)
+        if database
           log_connection_execute(conn, "USE #{database}")
         end
         conn
