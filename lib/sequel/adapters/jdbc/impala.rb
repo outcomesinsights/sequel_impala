@@ -8,6 +8,11 @@ module Sequel
       DATABASE_SETUP[:impala] = proc do |db|
         db.extend(Sequel::JDBC::Impala::DatabaseMethods)
         db.extend_datasets(Sequel::Impala::DatasetMethods)
+
+        # Explicitly disconnect at exit, which can fix issues where
+        # existing without disconnecting causes problems.
+        at_exit{db.disconnect}
+
         com.cloudera.impala.jdbc41.Driver
       end
     end
