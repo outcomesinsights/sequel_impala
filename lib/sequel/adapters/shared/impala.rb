@@ -296,7 +296,7 @@ module Sequel
       end
 
       def drop_schema_sql(schema, options)
-        "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}"
+        "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}#{' CASCADE' if options[:cascade]}"
       end
 
       def search_path_table_schemas
