@@ -28,7 +28,7 @@ module Sequel
       # are respected, and they default to 'localhost' and 21000, respectively.
       def connect(server)
         opts = server_opts(server)
-        ::Impala.connect(opts[:host]||'localhost', (opts[:port]||21000).to_i, opts)
+        force_database(::Impala.connect(opts[:host]||'localhost', (opts[:port]||21000).to_i, opts), opts[:database])
       end
 
       def database_error_classes

@@ -316,7 +316,7 @@ module Sequel
       # SHOW TABLE STATS will raise an error if given a view and not a table,
       # so use that to differentiate tables from views.
       def is_valid_table?(t, opts=OPTS)
-        t = [opts[:schema], t].map(&:to_s).join('__').to_sym if opts[:schema]
+        t = Sequel.qualify(opts[:schema], t) if opts[:schema]
         rows = describe(t, :formatted=>true)
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
           row[:type].to_s.strip !~ /VIEW/
@@ -388,6 +388,13 @@ module Sequel
 
       def set_sql(opts)
         opts.map { |k, v| "SET #{k}=#{v}" }
+      end
+
+      def force_database(conn, database)
+        if database
+          log_connection_execute(conn, "USE #{database}")
+        end
+        conn
       end
     end
 
