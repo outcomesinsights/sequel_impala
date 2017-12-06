@@ -52,8 +52,6 @@ module Sequel
             nil
           rescue *ImpalaExceptions => e
             raise_error(e)
-          rescue
-            raise
           ensure
             record_profile(cursor, opts)
             cursor.close if cursor && cursor.open?
