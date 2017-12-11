@@ -42,6 +42,8 @@ module Sequel
 
       def execute(sql, opts=OPTS)
         synchronize(opts[:server]) do |c|
+          # here's my super-hack to get DDL calls to record their profiles and query_ids
+          opts = self.opts.select { |k, v| [:query_id_name, :profile_name].include?(k) }.merge(opts)
           begin
             cursor = record_query_id(opts) do
               log_connection_yield(sql, c) do
