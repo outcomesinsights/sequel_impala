@@ -4,6 +4,8 @@ require 'sequel/adapters/shared/impala'
 module Sequel
   module Impala
     class Database < Sequel::Database
+      RECORD_QUERY_PROFILE = Object.new.freeze
+
       include DatabaseMethods
 
       # Exception classes used by Impala.
@@ -61,6 +63,26 @@ module Sequel
         end
       end
 
+      def query_id_and_profile(query_id_name=:default, profile_name=:default)
+        key = RECORD_QUERY_PROFILE
+        prev_profile_name = prev_query_id_name = nil
+        begin
+          Sequel.synchronize do 
+            prev_query_id_name = @query_ids[key]
+            prev_profile_name = @runtime_profiles[key]
+            @query_ids[key] = query_id_name
+            @runtime_profiles[key] = profile_name
+          end
+
+          yield
+        ensure
+          Sequel.synchronize do 
+            @query_ids[key] = prev_query_id_name
+            @runtime_profiles[key] = prev_profile_name
+          end
+        end
+      end
+
       def profile_for(profile_name=:default)
         Sequel.synchronize{@runtime_profiles[profile_name]}
       end
@@ -76,19 +98,21 @@ module Sequel
       end
 
       def record_profile(cursor, opts)
-        if cursor && profile_name = opts[:profile_name]
+        if cursor && (profile_name = opts[:profile_name] || Sequel.synchronize{@runtime_profiles[RECORD_QUERY_PROFILE]})
           profile = cursor.runtime_profile
           Sequel.synchronize{@runtime_profiles[profile_name] = profile}
         end
       end
 
       def record_query_id(opts = OPTS)
-        start = Time.now if opts[:query_id_name]
+        query_id_name = opts[:query_id_name] || Sequel.synchronize{@query_ids[RECORD_QUERY_PROFILE]}
+        start = Time.now if query_id_name
 
         cursor = yield
 
-        if cursor && query_id_name = opts[:query_id_name]
-          Sequel.synchronize{ @query_ids[query_id_name] = { query_id: cursor.handle.id, start_time: start } }
+        if cursor && query_id_name
+          h = { query_id: cursor.handle.id, start_time: start }
+          Sequel.synchronize{ @query_ids[query_id_name] = h }
         end
 
         cursor
