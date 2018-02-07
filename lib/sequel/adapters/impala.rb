@@ -67,7 +67,7 @@ module Sequel
         key = RECORD_QUERY_PROFILE
         prev_profile_name = prev_query_id_name = nil
         begin
-          Sequel.synchronize do 
+          Sequel.synchronize do
             prev_query_id_name = @query_ids[key]
             prev_profile_name = @runtime_profiles[key]
             @query_ids[key] = query_id_name
@@ -76,7 +76,7 @@ module Sequel
 
           yield
         ensure
-          Sequel.synchronize do 
+          Sequel.synchronize do
             @query_ids[key] = prev_query_id_name
             @runtime_profiles[key] = prev_profile_name
           end
