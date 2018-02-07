@@ -11,6 +11,7 @@ module Impala
       @connected = false
       @options = options.dup
       @options[:transport] ||= :buffered
+      @loggers = @options.fetch(:loggers, [])
       open
     end
 
@@ -23,7 +24,9 @@ module Impala
       return if @connected
 
       @transport = thrift_transport(host, port)
-      @transport.open
+      @transport.open do |transport|
+        enable_keepalive(transport)
+      end
 
       proto = Thrift::BinaryProtocol.new(@transport)
       @service = Protocol::ImpalaService::Client.new(proto)
@@ -135,6 +138,43 @@ module Impala
       end
 
       @service.query(query)
+    end
+
+    def enable_keepalive(transport)
+      s = transport.handle
+      log_debug("Enabling KEEPALIVE...")
+      s.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
+
+      # Apparently Mac OS X (Darwin) doesn't implement the SOL_TCP options below
+      # so we'll hope keep alive works under Mac OS X, but in production
+      # we Dockerize Jigsaw, so these options should be available when
+      # we're running on Linux
+      if defined?(::Socket::SOL_TCP)
+        opts = {}
+
+        if defined?(::Socket::TCP_KEEPIDLE)
+          opts[::Socket::TCP_KEEPIDLE] = 60
+        end
+
+        if defined?(::Socket::TCP_KEEPINTVL)
+          opts[::Socket::TCP_KEEPINTVL] = 10
+        end
+
+        if defined?(::Socket::TCP_KEEPCNT)
+          opts[::Socket::TCP_KEEPCNT] = 5
+        end
+
+        log_debug("Also enabling: #{opts.inspect}")
+        opts.each do |opt, value|
+          s.setsockopt(::Socket::SOL_TCP, opt, value)
+        end
+      end
+    end
+
+    def log_debug(message)
+      @loggers.each do |logger|
+        logger.debug(message)
+      end
     end
   end
 end
