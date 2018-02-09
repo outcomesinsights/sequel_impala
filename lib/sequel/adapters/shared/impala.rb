@@ -90,6 +90,22 @@ module Sequel
         run(drop_schema_sql(schema, options))
       end
 
+      # Support :invalidate_metadata option.  This option can be :all
+      # to invalidate metadata for all tables, or any other truthy
+      # value to invalidate metadata for just the tables being dropped.
+      def drop_table(*names)
+        super
+        drop_table_invalidate_metadata(names)
+      end
+
+      # Support :invalidate_metadata option.  This option can be :all
+      # to invalidate metadata for all tables, or any other truthy
+      # value to invalidate metadata for just the tables being dropped.
+      def drop_table?(*names)
+        super
+        drop_table_invalidate_metadata(names)
+      end
+
       # Implicitly quailfy the table if using the :search_path option.
       # This will look at all of the tables and views in the schemas,
       # and if an unqualified table is used and appears in one of the
@@ -124,6 +140,12 @@ module Sequel
         else
           table
         end
+      end
+
+      # Invalidate the metadata for the given table, or for all tables if
+      # no argument is given.
+      def invalidate_metadata(identifier=nil)
+        run("INVALIDATE METADATA #{quote_schema_table(identifier) if identifier}")
       end
 
       # Load data from HDFS into Impala.
@@ -285,6 +307,23 @@ module Sequel
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
+      end
+
+      # Handle :invalidate_metadata option for drop_table and drop_table?
+      def drop_table_invalidate_metadata(names)
+        opts = names.last
+        return unless opts.is_a?(Hash)
+        case opts[:invalidate_metadata]
+        when false, nil
+          # nothing
+        when :all
+          invalidate_metadata
+        else
+          names[0...-1].each do |table|
+            invalidate_metadata(table)
+          end
+        end
+        nil
       end
 
       def refresh_sql(table_name)
