@@ -94,6 +94,10 @@ module Sequel
       # to invalidate metadata for all tables, or any other truthy
       # value to invalidate metadata for just the tables being dropped.
       def drop_table(*names)
+        # CASCADE isn't a supported option in Impala
+        if names.last.is_a?(Hash)
+          names.last.delete(:cascade)
+        end
         super
         drop_table_invalidate_metadata(names)
       end
