@@ -38,6 +38,7 @@ module Sequel
       end
 
       def disconnect_connection(c)
+        log_info("Closing connection: #{c}")
         c.close
       rescue *DisconnectExceptions
       end
@@ -58,6 +59,7 @@ module Sequel
             raise_error(e)
           ensure
             record_profile(cursor, opts)
+            log_info("Closing cursor: #{cursor.inspect}")
             cursor.close if cursor && cursor.open?
           end
         end
