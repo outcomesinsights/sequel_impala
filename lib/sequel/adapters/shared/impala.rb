@@ -47,6 +47,13 @@ module Sequel
         run(create_schema_sql(schema, options))
       end
 
+      def create_table(name, options=OPTS)
+        super
+        if im = options[:invalidate_metadata]
+          invalidate_metadata((name unless im == :all))
+        end
+      end
+
       # Set the database_type for this database to :impala.
       def database_type
         :impala
@@ -90,24 +97,12 @@ module Sequel
         run(drop_schema_sql(schema, options))
       end
 
-      # Support :invalidate_metadata option.  This option can be :all
-      # to invalidate metadata for all tables, or any other truthy
-      # value to invalidate metadata for just the tables being dropped.
       def drop_table(*names)
         # CASCADE isn't a supported option in Impala
         if names.last.is_a?(Hash)
           names.last.delete(:cascade)
         end
         super
-        drop_table_invalidate_metadata(names)
-      end
-
-      # Support :invalidate_metadata option.  This option can be :all
-      # to invalidate metadata for all tables, or any other truthy
-      # value to invalidate metadata for just the tables being dropped.
-      def drop_table?(*names)
-        super
-        drop_table_invalidate_metadata(names)
       end
 
       # Implicitly quailfy the table if using the :search_path option.
@@ -311,23 +306,6 @@ module Sequel
         sql << " STORED AS #{options[:stored_as]}" if options[:stored_as]
         sql << " LOCATION #{literal(options[:location])}" if options[:location]
         sql
-      end
-
-      # Handle :invalidate_metadata option for drop_table and drop_table?
-      def drop_table_invalidate_metadata(names)
-        opts = names.last
-        return unless opts.is_a?(Hash)
-        case opts[:invalidate_metadata]
-        when false, nil
-          # nothing
-        when :all
-          invalidate_metadata
-        else
-          names[0...-1].each do |table|
-            invalidate_metadata(table)
-          end
-        end
-        nil
       end
 
       def refresh_sql(table_name)
