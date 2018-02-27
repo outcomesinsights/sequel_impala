@@ -60,14 +60,19 @@ module Sequel
           ensure
             record_profile(cursor, opts)
             log_info("Closing cursor: #{cursor.inspect}")
-            log_query_url(cursor.handle) if cursor && cursor.handle
+            log_query_url(cursor)
             cursor.close if cursor && cursor.open?
           end
         end
       end
 
-      def log_query_url(handle)
-        log_info(sprintf(ENV['SEQUEL_IMPALA_QUERY_URL'], query_id: handle.id)) if ENV['SEQUEL_IMPALA_QUERY_URL']
+      def log_query_url(cursor)
+        return unless cursor and cursor.handle
+        handle = cursor.handle
+        url_template = ENV['SEQUEL_IMPALA_QUERY_URL']
+        log_info(sprintf(url_template, query_id: handle.id)) if url_template
+      rescue
+        log_info("Failed to log Query URL given, '#{url_template.inspect}' and #{cursor.inspect}")
       end
 
       def query_id_and_profile(query_id_name=:default, profile_name=:default)
