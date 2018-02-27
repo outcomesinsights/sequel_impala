@@ -47,7 +47,6 @@ module Impala
       @handle = handle
       @service = service
 
-
       @row_buffer = []
       @done = false
       @open = true
@@ -62,7 +61,7 @@ module Impala
     end
 
     def inspect
-      "#<#{self.class}#{open? ? '' : ' (CLOSED)'}>"
+      "#<#{self.class}#{handle ? " QueryID: #{handle.id}" : ''}#{open? ? '' : ' (CLOSED)'}>"
     end
 
     def each

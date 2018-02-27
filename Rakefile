@@ -1,11 +1,11 @@
 require "rake"
 require "rake/clean"
 
-CLEAN.include ["sequel-impala-*.gem", "rdoc"]
+CLEAN.include ["sequel_impala-*.gem", "rdoc"]
 
-desc "Build sequel-impala gem"
+desc "Build sequel_impala gem"
 task :package=>[:clean] do |p|
-  sh %{#{FileUtils::RUBY} -S gem build sequel-impala.gemspec}
+  sh %{#{FileUtils::RUBY} -S gem build sequel_impala.gemspec}
 end
 
 ### Specs
@@ -19,7 +19,7 @@ task :default => :spec
 
 ### RDoc
 
-RDOC_DEFAULT_OPTS = ["--quiet", "--line-numbers", "--inline-source", '--title', 'sequel-impala: Sequel support for Impala database']
+RDOC_DEFAULT_OPTS = ["--quiet", "--line-numbers", "--inline-source", '--title', 'sequel_impala: Sequel support for Impala database']
 
 begin
   gem 'rdoc'

@@ -1,11 +1,11 @@
-# sequel-impala
+# sequel_impala
 
-sequel-impala adds support for Sequel to connect to the Impala database
+sequel_impala adds support for Sequel to connect to the Impala database
 via the included impala driver, and the included jdbc-hive2 driver under JRuby.
 
 # Source Code
 
-Source code is available on GitHub at https://github.com/outcomesinsights/sequel-impala
+Source code is available on GitHub at https://github.com/outcomesinsights/sequel_impala
 
 # Usage
 
@@ -36,7 +36,7 @@ MIT/Apache
 
 Ryan Duryea <aguynamedryan@gmail.com>
 
-Work on sequel-impala is generously funded by [Outcomes Insights, Inc.](http://outins.com)
+Work on sequel_impala is generously funded by [Outcomes Insights, Inc.](http://outins.com)
 
 # Previous Author
 
