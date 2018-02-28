@@ -50,7 +50,7 @@ module Sequel
           begin
             cursor = record_query_id(opts) do
               log_connection_yield(sql, c) do
-                c.execute(sql){}
+                c.execute(sql, handle_proc: cursor_logging_proc){}
               end
             end
             yield cursor if block_given?
@@ -60,15 +60,18 @@ module Sequel
           ensure
             record_profile(cursor, opts)
             log_info("Closing cursor: #{cursor.inspect}")
-            log_query_url(cursor)
             cursor.close if cursor && cursor.open?
           end
         end
       end
 
-      def log_query_url(cursor)
-        return unless cursor and cursor.handle
-        handle = cursor.handle
+      def cursor_logging_proc
+        return nil unless ENV['SEQUEL_IMPALA_QUERY_URL']
+        proc { |handle| log_query_url(handle) }
+      end
+
+      def log_query_url(handle)
+        return unless handle
         url_template = ENV['SEQUEL_IMPALA_QUERY_URL']
         log_info(sprintf(url_template, query_id: handle.id)) if url_template
       rescue

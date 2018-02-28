@@ -105,9 +105,12 @@ module Impala
     # @return [Cursor] a cursor for the result rows
     def execute(raw_query, query_options = {})
       raise ConnectionError.new("Connection closed") unless open?
+      handle_proc = query_options.delete(:handle_proc)
 
       query = sanitize_query(raw_query)
       handle = send_query(query, query_options)
+
+      handle_proc.call(handle) if handle_proc
 
       cursor = Cursor.new(handle, @service, @options)
       cursor.wait!
