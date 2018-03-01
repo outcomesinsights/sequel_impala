@@ -68,7 +68,9 @@ module Impala
 
     # Close this connection. It can still be reopened with {#open}.
     def close
+      log_debug("Closing #{self}")
       return unless @connected
+      log_debug("Closed #{self}")
 
       @transport.close
       @connected = false
@@ -108,16 +110,18 @@ module Impala
       handle_proc = query_options.delete(:handle_proc)
 
       query = sanitize_query(raw_query)
+      log_debug(query.slice(0,100))
       handle = send_query(query, query_options)
 
       handle_proc.call(handle) if handle_proc
 
-      cursor = Cursor.new(handle, @service, @options)
+      cursor = Cursor.new(handle, @service, @options.merge(loggers: @loggers))
       cursor.wait!
       cursor
     end
 
     def close_handle(handle)
+      log_debug("Closing #{handle}")
       @service.close(handle)
     end
 

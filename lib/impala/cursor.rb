@@ -41,11 +41,12 @@ module Impala
 
     attr_reader :typecast_map
 
-    attr_reader :handle
+    attr_reader :handle, :service
 
     def initialize(handle, service, options = {})
       @handle = handle
       @service = service
+      @loggers = options.fetch(:loggers, [])
 
       @row_buffer = []
       @done = false
@@ -107,6 +108,7 @@ module Impala
 
     # Returns true if the query is done running, and results can be fetched.
     def query_done?
+      log_debug("query_done? #{@service.get_state(@handle)}")
       [
         Protocol::Beeswax::QueryState::EXCEPTION,
         Protocol::Beeswax::QueryState::FINISHED
@@ -158,6 +160,7 @@ module Impala
     end
 
     def exceptional?
+      log_debug("exceptional? #{@service.get_state(@handle)}")
       @service.get_state(@handle) == Protocol::Beeswax::QueryState::EXCEPTION
     end
 
@@ -195,6 +198,12 @@ module Impala
 
     def row_convertor
       @row_convertor ||= columns.zip(metadata.schema.fieldSchemas.map{|s| typecast_map[s.type]}, (0...(columns.length)).to_a)
+    end
+
+    def log_debug(message)
+      @loggers.each do |logger|
+        logger.debug(message)
+      end
     end
   end
 end
