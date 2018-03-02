@@ -97,14 +97,6 @@ module Sequel
         run(drop_schema_sql(schema, options))
       end
 
-      def drop_table(*names)
-        # CASCADE isn't a supported option in Impala
-        if names.last.is_a?(Hash)
-          names.last.delete(:cascade)
-        end
-        super
-      end
-
       # Implicitly quailfy the table if using the :search_path option.
       # This will look at all of the tables and views in the schemas,
       # and if an unqualified table is used and appears in one of the
@@ -318,6 +310,11 @@ module Sequel
 
       def drop_schema_sql(schema, options)
         "DROP SCHEMA #{'IF EXISTS ' if options[:if_exists]}#{quote_identifier(schema)}#{' CASCADE' if options[:cascade]}"
+      end
+
+      # Support :purge option for PURGE, and don't support CASCADE.
+      def drop_table_sql(name, options)
+        "DROP TABLE#{' IF EXISTS' if options[:if_exists]} #{quote_schema_table(name)}#{' PURGE' if options[:purge]}"
       end
 
       def search_path_table_schemas
