@@ -121,6 +121,7 @@ module Impala
         periodic_callback
         sleep @poll_every
       end
+      check_errors
     end
 
     # Returns true if there are any more rows to fetch.
@@ -159,14 +160,18 @@ module Impala
       fetch_batch until @done || @row_buffer.count >= BUFFER_SIZE
     end
 
+    def check_errors
+      raise CursorError.new("Cursor has expired or been closed") unless @open
+      raise ConnectionError.new("The query was aborted") if exceptional?
+    end
+
     def exceptional?
       log_debug("exceptional? #{@service.get_state(@handle)}")
       @service.get_state(@handle) == Protocol::Beeswax::QueryState::EXCEPTION
     end
 
     def fetch_batch
-      raise CursorError.new("Cursor has expired or been closed") unless @open
-      raise ConnectionError.new("The query was aborted") if exceptional?
+      check_errors
 
       begin
         res = @service.fetch(@handle, false, BUFFER_SIZE)
