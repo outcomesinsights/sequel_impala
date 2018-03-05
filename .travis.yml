@@ -5,8 +5,7 @@ sudo: false
 env:
   secure: xFZ00J+axPQADZ2Dqc61Ljo56vT8/uwVzOFw9zxKQs3ThMfI8+OvlI7LV8sf0XPC5Cp+BObYCxzsqIOY8M8yo+NfknlNmlrQaPqi3lf+3tKvEFeFiQZ/jvbGReIdxRdPViVls1W3zEDdRwe9zUAiz7C+xBYCRfZRoGjfm7gx/4c=
 before_install:
-- gem install bundler tping
-- bundle
+- gem install tping
 script: echo "No tests here!"
 after_success:
 - tping $TRAVIS_PRO_TOKEN outcomesinsights jigsaw_builder pro
