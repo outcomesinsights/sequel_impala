@@ -284,6 +284,7 @@ module Sequel
 
       def create_table_parameters_sql(options)
         sql = String.new
+        sql << " SORT BY #{literal(options[:sort_by])}" if options[:sort_by]
         sql << " COMMENT #{literal(options[:comment])}" if options[:comment]
         if options[:field_term] || options[:line_term]
           sql << " ROW FORMAT DELIMITED"
