@@ -48,7 +48,25 @@ module Sequel
       end
 
       def create_table(name, options=OPTS)
+        if options[:sort_by] && options[:as] && options[:create_unsorted] != false
+          # Use of SORT BY with CREATE TABLE AS on complex queries can
+          # cause Impala to fail complaining about sort.columns.
+          # Use a temporary table in this case to make sure things are sorted.
+          orig_name = name
+          unsorted_name = name = "#{name}_u"
+          options = options.dup
+          sort_by = options.delete(:sort_by)
+        end
+
         super
+
+        if sort_by
+          options = options.merge(:sort_by=>sort_by, :as=>DB.from(name), :create_unsorted=>false)
+          name = orig_name
+          super
+          drop_table(unsorted_name)
+        end
+
         if im = options[:invalidate_metadata]
           invalidate_metadata((name unless im == :all))
         end
