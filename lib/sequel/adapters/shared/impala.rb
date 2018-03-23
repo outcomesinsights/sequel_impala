@@ -53,7 +53,18 @@ module Sequel
           # cause Impala to fail complaining about sort.columns.
           # Use a temporary table in this case to make sure things are sorted.
           orig_name = name
-          unsorted_name = name = "#{name}_u"
+          unsorted_name = name = case name
+          when SQL::QualifiedIdentifier
+            SQL::QualifiedIdentifier.new(name.table, "#{name.column}_u")
+          when SQL::Identifier
+            SQL::Identifier.new("#{name.value}_u")
+          when LiteralString
+            LiteralString.new("#{name}_u")
+          when String, Symbol
+            "#{name}_u"
+          else
+            raise Error, "unsupported create_table name argument: #{name.inspect}"
+          end
           options = options.dup
           sort_by = options.delete(:sort_by)
         end
