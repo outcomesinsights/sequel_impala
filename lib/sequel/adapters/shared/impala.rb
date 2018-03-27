@@ -72,7 +72,7 @@ module Sequel
         super
 
         if sort_by
-          options = options.merge(:sort_by=>sort_by, :as=>DB.from(name), :create_unsorted=>false)
+          options = options.merge(:sort_by=>sort_by, :as=>from(name), :create_unsorted=>false)
           name = orig_name
           super
           drop_table(unsorted_name)
