@@ -108,7 +108,6 @@ module Impala
 
     # Returns true if the query is done running, and results can be fetched.
     def query_done?
-      log_debug("query_done? #{@service.get_state(@handle)}")
       [
         Protocol::Beeswax::QueryState::EXCEPTION,
         Protocol::Beeswax::QueryState::FINISHED
