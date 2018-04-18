@@ -53,6 +53,7 @@ module Impala
       @open = true
       @typecast_map = TYPECAST_MAP.dup
       @options = options.dup
+      @cancel_if = options.delete(:cancel_if)
       @progress_reporter = ProgressReporter.new(self, @options)
       @poll_every = options.fetch(:poll_every, 0.1)
     end
@@ -117,6 +118,7 @@ module Impala
     # Blocks until the query done running.
     def wait!
       until query_done?
+        check_cancel
         periodic_callback
         sleep @poll_every
       end
@@ -159,6 +161,13 @@ module Impala
       fetch_batch until @done || @row_buffer.count >= BUFFER_SIZE
     end
 
+    def check_cancel
+      if @cancel_if && @cancel_if.call == true
+        close
+        raise CursorError.new("Cursor was closed due to :cancel_if returning true")
+      end
+    end
+
     def check_errors
       raise CursorError.new("Cursor has expired or been closed") unless @open
       raise ConnectionError.new("The query was aborted") if exceptional?
@@ -170,6 +179,7 @@ module Impala
     end
 
     def fetch_batch
+      check_cancel
       check_errors
 
       begin
