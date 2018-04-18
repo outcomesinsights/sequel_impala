@@ -553,9 +553,21 @@ module Sequel
         ds.clone(:from => ds.opts[:from].map{|t| db.implicit_qualify(t)})
       end
 
+      # Handle the :hints option to specify join hints, such as :broadcast,
+      # :shuffle, or an array containing both. Use of a join hint automatically
+      # forces the use of the STRAIGHT_JOIN in the query.
       # Implicitly qualify tables if using the :search_path database option.
       def join_table(type, table, expr=nil, options=OPTS, &block)
-        super(type, db.implicit_qualify(table), expr, options, &block)
+        ds = super(type, db.implicit_qualify(table), expr, options, &block)
+
+        if join_hints = options[:hints]
+          hints = opts[:join_hints] ? opts[:join_hints].dup : {}
+          hints[ds.opts[:join].last] = "/* +#{Array(join_hints).join('|').upcase} */ ".freeze
+          hints.freeze
+          ds = ds.clone(:join_hints=>hints)
+        end
+
+        ds
       end
 
       # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns
@@ -788,6 +800,19 @@ module Sequel
         [[columns.last], [nil]]
       end
 
+      # Append literalization of JOIN clause without ON or USING to SQL string.
+      def join_clause_sql_append(sql, jc)
+        table = jc.table
+        table_alias = jc.table_alias
+        table_alias = nil if table == table_alias && !jc.column_aliases
+        sql << ' ' << join_type_sql(jc.join_type) << ' '
+        if (hints = opts[:join_hints]) && (hint = hints[jc])
+          sql << hint
+        end
+        identifier_append(sql, table)
+        as_sql_append(sql, table_alias, jc.column_aliases) if table_alias
+      end
+
       def literal_true
         BOOL_TRUE
       end
@@ -815,6 +840,11 @@ module Sequel
       # an identifier name.
       def quoted_identifier_append(sql, name)
         sql << BACKTICK << name.to_s << BACKTICK
+      end
+
+      def select_distinct_sql(sql)
+        super
+        sql << " STRAIGHT_JOIN" if opts[:join_hints]
       end
 
       # Don't include a LIMIT clause if there is no FROM clause.  In general,
