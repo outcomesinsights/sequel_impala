@@ -54,7 +54,7 @@ module Impala
       @typecast_map = TYPECAST_MAP.dup
       @options = options.dup
       @progress_reporter = ProgressReporter.new(self, @options)
-      @poll_every = options.fetch(:poll_every, 0.1)
+      @poll_every = options.fetch(:poll_every, 0.5)
     end
 
     def columns
