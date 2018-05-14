@@ -555,6 +555,15 @@ module Sequel
 
       # Implicitly qualify tables if using the :search_path database option.
       def join_table(type, table, expr=nil, options=OPTS, &block)
+        opts = options
+        if opts.empty? && expr.is_a?(Hash)
+          opts = expr
+        end
+
+        if opts.delete(:semi) && type == :left
+          type = :left_semi
+        end
+
         super(type, db.implicit_qualify(table), expr, options, &block)
       end
 
