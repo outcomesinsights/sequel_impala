@@ -560,11 +560,11 @@ module Sequel
           opts = expr
         end
 
-        if opts.delete(:semi) && type == :left
+        if opts[:semi] && type == :left
           type = :left_semi
         end
 
-        super(type, db.implicit_qualify(table), expr, options, &block)
+        super(type, db.implicit_qualify(table), expr, options.reject { |k, _| k == :semi }, &block)
       end
 
       # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns
