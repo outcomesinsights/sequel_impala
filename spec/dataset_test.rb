@@ -304,7 +304,7 @@ describe Sequel::Dataset do
     @d.reverse(:value).min(:value).to_i.must_equal 456
     @d.max(:value).to_i.must_equal 456
     @d.sum(:value).to_i.must_equal 579
-    @d.interval(:value).to_i.must_equal 333
+    @d.extension(:sequel_4_dataset_methods).interval(:value).to_i.must_equal 333
   end
 
   it "should return the correct records" do
@@ -892,14 +892,14 @@ describe "Sequel::Dataset DSL support" do
   it "should work with qualifying" do
     @ds.insert(10, 20)
     @ds.get(Sequel[:a][:b]).must_equal 20
-    @ds.get{a__b}.must_equal 20
+    @ds.get{a[:b]}.must_equal 20
     @ds.get(Sequel.qualify(:a, :b)).must_equal 20
   end
 
   it "should work with aliasing" do
     @ds.insert(10, 20)
     @ds.get(Sequel[:a][:b].as(:c)).must_equal 20
-    @ds.get{a__b.as(c)}.must_equal 20
+    @ds.get{a[:b].as(c)}.must_equal 20
     @ds.get(Sequel.qualify(:a, :b).as(:c)).must_equal 20
     @ds.get(Sequel.as(:b, :c)).must_equal 20
   end
@@ -1045,7 +1045,7 @@ describe "SQL Extract Function" do
 
   it "should return the part of the datetime asked for" do
     t = Time.now
-    def @ds.supports_timestamp_timezones?() false end
+    @ds = @ds.with_extend{def supports_timestamp_timezones?() false end}
     @ds.insert(t)
     @ds.get{a.extract(:year)}.must_equal t.year
     @ds.get{a.extract(:month)}.must_equal t.month
