@@ -128,7 +128,7 @@ describe "Impala date manipulation functions" do
   end
 
   it "should work with Sequel date_arithmetic extension" do
-    @ds.extension!(:date_arithmetic)
+    @ds = @ds.extension(:date_arithmetic)
     @ds.get(Sequel.date_add(:t, :days=>1)).to_date.must_equal(Date.today+1)
     @ds.get(Sequel.date_sub(:t, :days=>1)).to_date.must_equal(Date.today-1)
   end
