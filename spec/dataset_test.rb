@@ -363,7 +363,7 @@ describe "Simple Dataset operations" do
     @ds.insert(:number=>1, :flag=>true)
     @ds.insert(:number=>2, :flag=>false)
     @ds.insert(:number=>3, :flag=>nil)
-    @ds.order!(:number)
+    @ds = @ds.order(:number)
     @ds.filter(:flag=>true).map(:number).must_equal [1]
     @ds.filter(:flag=>false).map(:number).must_equal [2]
     @ds.filter(:flag=>nil).map(:number).must_equal [3]
