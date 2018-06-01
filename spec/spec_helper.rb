@@ -13,3 +13,6 @@ Sequel::Model.cache_anonymous_models = false
 unless defined?(DB)
   DB = Sequel.connect(ENV['IMPALA_URL'] || 'jdbc:hive2://localhost:21050/;auth=noSasl')
 end
+
+IDENTIFIER_MANGLING = !!ENV['IDENTIFIER_MANGLING'] unless defined?(IDENTIFIER_MANGLING)
+DB.extension(:identifier_mangling) if IDENTIFIER_MANGLING
