@@ -1190,24 +1190,20 @@ describe "Dataset identifier methods" do
   after(:all) do
     @db.drop_table?(:a)
   end
-
+  
   it "#identifier_output_method should change how identifiers are output" do
-    @ds.identifier_output_method = :upcase
-    @ds.first.must_equal(:AB=>1)
-    @ds.identifier_output_method = :uprev
-    @ds.first.must_equal(:BA=>1)
+    @ds.with_identifier_output_method(:upcase).first.must_equal(:AB=>1)
+    @ds.with_identifier_output_method(:uprev).first.must_equal(:BA=>1)
   end
-
+  
   it "should work with a nil identifier_output_method" do
-    @ds.identifier_output_method = nil
-    [{:ab=>1}, {:AB=>1}].must_include(@ds.first)
+    [{:ab=>1}, {:AB=>1}].must_include(@ds.with_identifier_output_method(nil).first)
   end
 
   it "should work when not quoting identifiers" do
-    @ds.quote_identifiers = false
-    @ds.first.must_equal(:ab=>1)
+    @ds.with_quote_identifiers(false).first.must_equal(:ab=>1)
   end
-end
+end if IDENTIFIER_MANGLING
 
 describe "Dataset defaults and overrides" do
   before do
