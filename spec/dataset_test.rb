@@ -686,7 +686,7 @@ describe "Sequel::Dataset main SQL methods" do
   end
 
   it "#select_group should work correctly" do
-    @ds.unordered!
+    @ds = @ds.unordered
     @ds.select_group(:a).all.must_equal []
     @ds.insert(20, 30)
     @ds.select_group(:a).all.must_equal [{:a=>20}]
@@ -697,13 +697,13 @@ describe "Sequel::Dataset main SQL methods" do
   end
 
   it "#select_group should work correctly when aliasing" do
-    @ds.unordered!
+    @ds = @ds.unordered
     @ds.insert(20, 30)
     @ds.select_group(Sequel[:b].as(:c)).all.must_equal [{:c=>30}]
   end
 
   it "#having should work correctly" do
-    @ds.unordered!
+    @ds = @ds.unordered
     @ds.select{[b, max(a).as(c)]}.group(:b).having{max(a) > 30}.all.must_equal []
     @ds.insert(20, 30)
     @ds.select{[b, max(a).as(c)]}.group(:b).having{max(a) > 30}.all.must_equal []
@@ -712,7 +712,7 @@ describe "Sequel::Dataset main SQL methods" do
   end
 
   it "#having should work without a previous group" do
-    @ds.unordered!
+    @ds = @ds.unordered
     @ds.select{max(a).as(c)}.having{max(a) > 30}.all.must_equal []
     @ds.insert(20, 30)
     @ds.select{max(a).as(c)}.having{max(a) > 30}.all.must_equal []
