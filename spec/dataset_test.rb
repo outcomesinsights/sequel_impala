@@ -637,7 +637,7 @@ describe "Sequel::Dataset convenience methods" do
   end
 
   it "#range should return the range between the maximum and minimum values" do
-    @ds = @ds.unordered
+    @ds = @ds.unordered.extension(:sequel_4_dataset_methods)
     @ds.insert(20, 10)
     @ds.insert(30, 10)
     @ds.range(:a).must_equal(20..30)
@@ -645,7 +645,7 @@ describe "Sequel::Dataset convenience methods" do
   end
 
   it "#interval should return the different between the maximum and minimum values" do
-    @ds = @ds.unordered
+    @ds = @ds.unordered.extension(:sequel_4_dataset_methods)
     @ds.insert(20, 10)
     @ds.insert(30, 10)
     @ds.interval(:a).to_i.must_equal 10
