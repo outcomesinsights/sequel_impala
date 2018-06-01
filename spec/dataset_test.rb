@@ -1028,7 +1028,6 @@ describe "Sequel::Dataset DSL support" do
     @ds.insert(20, 10)
     @ds.filter(:a=>20, :b=>10).all.must_equal [{:a=>20, :b=>10}]
     @ds.filter([[:a, 20], [:b, 10]]).all.must_equal [{:a=>20, :b=>10}]
-    @ds.filter({:a=>20}, {:b=>10}).all.must_equal [{:a=>20, :b=>10}]
     @ds.filter(Sequel.|({:a=>20}, {:b=>5})).all.must_equal [{:a=>20, :b=>10}]
     @ds.filter(Sequel.~(:a=>10)).all.must_equal [{:a=>20, :b=>10}]
   end
