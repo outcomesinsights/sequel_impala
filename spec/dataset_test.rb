@@ -679,8 +679,8 @@ describe "Sequel::Dataset main SQL methods" do
 
   it "#and and #or should work correctly" do
     @ds.insert(20, 30)
-    @ds.filter(:a=>20).and(:b=>30).all.must_equal [{:a=>20, :b=>30}]
-    @ds.filter(:a=>20).and(:b=>15).all.must_equal []
+    @ds.filter(:a=>20).extension(:sequel_4_dataset_methods).and(:b=>30).all.must_equal [{:a=>20, :b=>30}]
+    @ds.filter(:a=>20).extension(:sequel_4_dataset_methods).and(:b=>15).all.must_equal []
     @ds.filter(:a=>20).or(:b=>15).all.must_equal [{:a=>20, :b=>30}]
     @ds.filter(:a=>10).or(:b=>15).all.must_equal []
   end
