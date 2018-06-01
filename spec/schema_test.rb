@@ -2,41 +2,53 @@ require File.join(File.dirname(File.expand_path(__FILE__)), 'spec_helper.rb')
 
 describe "Database schema parser" do
   after do
-    DB.identifier_output_method = nil
-    DB.identifier_input_method = nil
     DB.drop_table?(:items)
   end
 
-  it "should handle a database with a identifier methods" do
-    DB.identifier_output_method = :reverse
-    DB.identifier_input_method = :reverse
-    DB.create_table!(:items){Integer :number}
-    begin
-      DB.schema(:items, :reload=>true).must_be_kind_of(Array)
-      DB.schema(:items, :reload=>true).first.first.must_equal :number
-    ensure
-      DB.drop_table(:items)
+  describe "with identifier mangling" do
+    before do
+      @iom = DB.identifier_output_method
+      @iim = DB.identifier_input_method
+      @qi = DB.quote_identifiers?
     end
-  end
+    after do
+      DB.identifier_output_method = @iom
+      DB.identifier_input_method = @iim
+      DB.quote_identifiers = @qi
+    end
 
-  it "should handle a dataset with identifier methods different than the database's" do
-    DB.identifier_output_method = :reverse
-    DB.identifier_input_method = :reverse
-    DB.create_table!(:items){Integer :number}
-    DB.identifier_output_method = nil
-    DB.identifier_input_method = nil
-    ds = DB[:items]
-    ds.identifier_output_method = :reverse
-    ds.identifier_input_method = :reverse
-    begin
-      DB.schema(ds, :reload=>true).must_be_kind_of(Array)
-      DB.schema(ds, :reload=>true).first.first.must_equal :number
-    ensure
+    it "should handle a database with a identifier methods" do
       DB.identifier_output_method = :reverse
       DB.identifier_input_method = :reverse
-      DB.drop_table(:items)
+      DB.quote_identifiers = true
+      DB.create_table!(:items){Integer :number}
+      begin
+        DB.schema(:items, :reload=>true).must_be_kind_of(Array)
+        DB.schema(:items, :reload=>true).first.first.must_equal :number
+      ensure 
+      end
     end
-  end
+
+    it "should handle a dataset with identifier methods different than the database's" do
+      DB.identifier_output_method = :reverse
+      DB.identifier_input_method = :reverse
+      DB.quote_identifiers = true
+      DB.create_table!(:items){Integer :number}
+      DB.identifier_output_method = @iom
+      DB.identifier_input_method = @iim
+      ds = DB[:items].
+        with_identifier_output_method(:reverse).
+        with_identifier_input_method(:reverse)
+      begin
+        DB.schema(ds, :reload=>true).must_be_kind_of(Array)
+        DB.schema(ds, :reload=>true).first.first.must_equal :number
+      ensure 
+        DB.identifier_output_method = :reverse
+        DB.identifier_input_method = :reverse
+        DB.drop_table(:items)
+      end
+    end
+  end if IDENTIFIER_MANGLING && !DB.frozen?
 
   it "should not issue an sql query if the schema has been loaded unless :reload is true" do
     DB.create_table!(:items){Integer :number}
