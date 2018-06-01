@@ -970,7 +970,7 @@ describe "Sequel::Dataset DSL support" do
   it "should work with IN/NOT in with datasets" do
     @ds.insert(20, 10)
     ds = @ds.unordered
-    @ds.quote_identifiers = false
+    @ds = @ds.with_quote_identifiers(false)
 
     @ds.filter(:a=>ds.select(:a)).all.must_equal [{:a=>20, :b=>10}]
     @ds.filter(:a=>ds.select(:a).where(:a=>15)).all.must_equal []
