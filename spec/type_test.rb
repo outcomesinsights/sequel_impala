@@ -31,14 +31,8 @@ describe "Supported types" do
     ds.all.must_equal [{:number=>2}]
   end
 
-  it "should support generic fixnum type" do
-    ds = create_items_table_with_column(:number, Fixnum)
-    ds.insert(:number => 2)
-    ds.all.must_equal [{:number=>2}]
-  end
-
   it "should support generic bignum type" do
-    ds = create_items_table_with_column(:number, Bignum)
+    ds = create_items_table_with_column(:number, :Bignum)
     ds.insert(:number => 2**34)
     ds.all.must_equal [{:number=>2**34}]
   end
