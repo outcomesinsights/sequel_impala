@@ -96,16 +96,16 @@ describe "Simple Dataset operations" do
     @db.create_table!(:items2){primary_key :id2; Integer :number2}
     @db[:items2].insert(:id2=>1, :number2=>10)
     @ds.from(:items, :items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.from(Sequel[:items].as(:i), Sequel[:items2].as(:i2)).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
     @ds.cross_join(:items2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
-    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10, :id3=>1, :number3=>10}]
+    @ds.from(Sequel[:items].as(:i)).cross_join(Sequel[:items2].as(:i2)).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10}]
+    @ds.cross_join(Sequel[:items2].as(:i)).cross_join(@db[:items2].select(Sequel[:id2].as(:id3), Sequel[:number2].as(:number3))).order(:id).limit(2, 0).all.must_equal [{:id=>1, :number=>10, :id2=>1, :number2=>10, :id3=>1, :number3=>10}]
 
     @ds.from(:items, :items2).order(:id).limit(2, 1).all.must_equal []
-    @ds.from(:items___i, :items2___i2).order(:id).limit(2, 1).all.must_equal []
+    @ds.from(Sequel[:items].as(:i), Sequel[:items2].as(:i2)).order(:id).limit(2, 1).all.must_equal []
     @ds.cross_join(:items2).order(:id).limit(2, 1).all.must_equal []
-    @ds.from(:items___i).cross_join(:items2___i2).order(:id).limit(2, 1).all.must_equal []
-    @ds.cross_join(:items2___i).cross_join(@db[:items2].select(:id2___id3, :number2___number3)).order(:id).limit(2, 1).all.must_equal []
+    @ds.from(Sequel[:items].as(:i)).cross_join(Sequel[:items2].as(:i2)).order(:id).limit(2, 1).all.must_equal []
+    @ds.cross_join(Sequel[:items2].as(:i)).cross_join(@db[:items2].select(Sequel[:id2].as(:id3), Sequel[:number2].as(:number3))).order(:id).limit(2, 1).all.must_equal []
     @db.drop_table(:items2)
   end
 
@@ -126,8 +126,8 @@ describe "Simple Dataset operations" do
   end
 
   it "should join correctly" do
-    @ds.join(:items___b, :id=>:id).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
-    @ds.join(:items___b, [:id]).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
+    @ds.join(Sequel[:items].as(:b), :id=>:id).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
+    @ds.join(Sequel[:items].as(:b), [:id]).select_all(:items).all.must_equal [{:id=>1, :number=>10}]
   end
 
   it "should correctly handle subqueries" do
@@ -139,7 +139,7 @@ describe "Simple Dataset operations" do
     a =  [{:items=>{:id=>1, :number=>10}, :b=>{:id=>1, :number=>10}}]
     pr = proc{|t| @ds.graph(t, {:id=>:id}, :table_alias=>:b).extension(:graph_each).all.must_equal a}
     pr[:items]
-    pr[:items___foo]
+    pr[Sequel[:items].as(:foo)]
     pr[Sequel.identifier(:items)]
     pr[Sequel.identifier('items')]
     pr[Sequel.as(:items, :foo)]
@@ -210,10 +210,10 @@ describe "Simple Dataset operations" do
   it "should fetch correctly with a limit and offset without an order" do
     ds = @ds.order(1)
     ds.limit(2, 1).all.must_equal []
-    ds.join(:items___i, :id=>:id).select(:items__id___s, :i__id___id2).limit(2, 1).all.must_equal []
-    ds.join(:items___i, :id=>:id).select(:items__id).limit(2, 1).all.must_equal []
-    ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id)).limit(2, 1).all.must_equal []
-    ds.join(:items___i, :id=>:id).select(Sequel.qualify(:items, :id).as(:s)).limit(2, 1).all.must_equal []
+    ds.join(Sequel[:items].as(:i), :id=>:id).select(Sequel[:items][:id].as(:s), Sequel[:i][:id].as(:id2)).limit(2, 1).all.must_equal []
+    ds.join(Sequel[:items].as(:i), :id=>:id).select(Sequel[:items][:id]).limit(2, 1).all.must_equal []
+    ds.join(Sequel[:items].as(:i), :id=>:id).select(Sequel.qualify(:items, :id)).limit(2, 1).all.must_equal []
+    ds.join(Sequel[:items].as(:i), :id=>:id).select(Sequel.qualify(:items, :id).as(:s)).limit(2, 1).all.must_equal []
   end
 
   it "should be orderable by column number" do
@@ -244,7 +244,7 @@ describe "Simple Dataset operations" do
   end
 
   it "should alias columns correctly" do
-    @ds.select(:id___x, :number___n).first.must_equal(:x=>1, :n=>10)
+    @ds.select(Sequel[:id].as(:x), Sequel[:number].as(:n)).first.must_equal(:x=>1, :n=>10)
   end
 
   it "should handle true/false properly" do
@@ -445,8 +445,8 @@ describe "Common Table Expressions" do
   end
 
   it "should support joining a dataset with a CTE" do
-    @ds.inner_join(@db[:t].with(:t, @ds.filter(:parent_id=>nil)), :id => :id).select(:i1__id).order(:i1__id).map(:id).must_equal [1,2]
-    @db[:t].with(:t, @ds).inner_join(@db[:s].with(:s, @ds.filter(:parent_id=>nil)), :id => :id).select(:t__id).order(:t__id).map(:id).must_equal [1,2]
+    @ds.inner_join(@db[:t].with(:t, @ds.filter(:parent_id=>nil)), :id => :id).select(Sequel[:i1][:id]).order(Sequel[:i1][:id]).map(:id).must_equal [1,2]
+    @db[:t].with(:t, @ds).inner_join(@db[:s].with(:s, @ds.filter(:parent_id=>nil)), :id => :id).select(Sequel[:t][:id]).order(Sequel[:t][:id]).map(:id).must_equal [1,2]
   end
 
   it "should support a subselect in the FROM clause with a CTE" do
@@ -627,13 +627,13 @@ describe "Sequel::Dataset convenience methods" do
   end
 
   it "#group_and_count should support column aliases" do
-    @ds.group_and_count(:a___c).order{count(:a)}.all.must_equal []
+    @ds.group_and_count(Sequel[:a].as(:c)).order{count(:a)}.all.must_equal []
     @ds.insert(20, 10)
-    @ds.group_and_count(:a___c).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>20, :count=>1}]
+    @ds.group_and_count(Sequel[:a].as(:c)).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>20, :count=>1}]
     @ds.insert(20, 30)
-    @ds.group_and_count(:a___c).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>20, :count=>2}]
+    @ds.group_and_count(Sequel[:a].as(:c)).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>20, :count=>2}]
     @ds.insert(30, 30)
-    @ds.group_and_count(:a___c).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>30, :count=>1}, {:c=>20, :count=>2}]
+    @ds.group_and_count(Sequel[:a].as(:c)).order{count(:a)}.all.each{|h| h[:count] = h[:count].to_i}.must_equal [{:c=>30, :count=>1}, {:c=>20, :count=>2}]
   end
 
   it "#range should return the range between the maximum and minimum values" do
@@ -664,10 +664,10 @@ describe "Sequel::Dataset main SQL methods" do
   end
 
   it "#exists should return a usable exists clause" do
-    @ds.filter(@db[:d___c].filter(:c__a=>:d__b).exists).all.must_equal []
+    @ds.filter(@db[Sequel[:d].as(:c)].filter(Sequel[:c][:a]=>Sequel[:d][:b]).exists).all.must_equal []
     @ds.insert(20, 30)
     @ds.insert(10, 20)
-    @ds.filter(@db[:d___c].filter(:c__a=>:d__b).exists).all.must_equal [{:a=>10, :b=>20}]
+    @ds.filter(@db[Sequel[:d].as(:c)].filter(Sequel[:c][:a]=>Sequel[:d][:b]).exists).all.must_equal [{:a=>10, :b=>20}]
   end
 
   it "#filter and #exclude should work with placeholder strings" do
@@ -699,7 +699,7 @@ describe "Sequel::Dataset main SQL methods" do
   it "#select_group should work correctly when aliasing" do
     @ds.unordered!
     @ds.insert(20, 30)
-    @ds.select_group(:b___c).all.must_equal [{:c=>30}]
+    @ds.select_group(Sequel[:b].as(:c)).all.must_equal [{:c=>30}]
   end
 
   it "#having should work correctly" do
@@ -769,36 +769,36 @@ describe "Sequel::Dataset convenience methods" do
     @ds.select_map([:a]).must_equal [[1], [5]]
     @ds.select_map([:a, :b]).must_equal [[1, 2], [5, 6]]
 
-    @ds.select_map(:a___e).must_equal [1, 5]
-    @ds.select_map(:b___e).must_equal [2, 6]
-    @ds.select_map([:a___e, :b___f]).must_equal [[1, 2], [5, 6]]
-    @ds.select_map([:a__a___e, :a__b___f]).must_equal [[1, 2], [5, 6]]
-    @ds.select_map([Sequel.expr(:a__a).as(:e), Sequel.expr(:a__b).as(:f)]).must_equal [[1, 2], [5, 6]]
+    @ds.select_map(Sequel[:a].as(:e)).must_equal [1, 5]
+    @ds.select_map(Sequel[:b].as(:e)).must_equal [2, 6]
+    @ds.select_map([Sequel[:a].as(:e), Sequel[:b].as(:f)]).must_equal [[1, 2], [5, 6]]
+    @ds.select_map([Sequel[:a][:a].as(:e), Sequel[:a][:b].as(:f)]).must_equal [[1, 2], [5, 6]]
+    @ds.select_map([Sequel.expr(Sequel[:a][:a]).as(:e), Sequel.expr(Sequel[:a][:b]).as(:f)]).must_equal [[1, 2], [5, 6]]
     @ds.select_map([Sequel.qualify(:a, :a).as(:e), Sequel.qualify(:a, :b).as(:f)]).must_equal [[1, 2], [5, 6]]
     @ds.select_map([Sequel.identifier(:a).qualify(:a).as(:e), Sequel.qualify(:a, :b).as(:f)]).must_equal [[1, 2], [5, 6]]
   end
 
   it "should have working #select_order_map" do
     @ds.select_order_map(:a).must_equal [1, 5]
-    @ds.select_order_map(Sequel.desc(:a__b)).must_equal [6, 2]
-    @ds.select_order_map(Sequel.desc(:a__b___e)).must_equal [6, 2]
+    @ds.select_order_map(Sequel.desc(Sequel[:a][:b])).must_equal [6, 2]
+    @ds.select_order_map(Sequel.desc(Sequel[:a][:b].as(:e))).must_equal [6, 2]
     @ds.select_order_map(Sequel.qualify(:a, :b).as(:e)).must_equal [2, 6]
     @ds.select_order_map([:a]).must_equal [[1], [5]]
     @ds.select_order_map([Sequel.desc(:a), :b]).must_equal [[5, 6], [1, 2]]
 
-    @ds.select_order_map(:a___e).must_equal [1, 5]
-    @ds.select_order_map(:b___e).must_equal [2, 6]
-    @ds.select_order_map([Sequel.desc(:a___e), :b___f]).must_equal [[5, 6], [1, 2]]
-    @ds.select_order_map([Sequel.desc(:a__a___e), :a__b___f]).must_equal [[5, 6], [1, 2]]
-    @ds.select_order_map([Sequel.desc(:a__a), Sequel.expr(:a__b).as(:f)]).must_equal [[5, 6], [1, 2]]
+    @ds.select_order_map(Sequel[:a].as(:e)).must_equal [1, 5]
+    @ds.select_order_map(Sequel[:b].as(:e)).must_equal [2, 6]
+    @ds.select_order_map([Sequel.desc(Sequel[:a].as(:e)), Sequel[:b].as(:f)]).must_equal [[5, 6], [1, 2]]
+    @ds.select_order_map([Sequel.desc(Sequel[:a][:a].as(:e)), Sequel[:a][:b].as(:f)]).must_equal [[5, 6], [1, 2]]
+    @ds.select_order_map([Sequel.desc(Sequel[:a][:a]), Sequel.expr(Sequel[:a][:b]).as(:f)]).must_equal [[5, 6], [1, 2]]
     @ds.select_order_map([Sequel.qualify(:a, :a).desc, Sequel.qualify(:a, :b).as(:f)]).must_equal [[5, 6], [1, 2]]
     @ds.select_order_map([Sequel.identifier(:a).qualify(:a).desc, Sequel.qualify(:a, :b).as(:f)]).must_equal [[5, 6], [1, 2]]
   end
 
   it "should have working #select_hash" do
     @ds.select_hash(:a, :b).must_equal(1=>2, 5=>6)
-    @ds.select_hash(:a__a___e, :b).must_equal(1=>2, 5=>6)
-    @ds.select_hash(Sequel.expr(:a__a).as(:e), :b).must_equal(1=>2, 5=>6)
+    @ds.select_hash(Sequel[:a][:a].as(:e), :b).must_equal(1=>2, 5=>6)
+    @ds.select_hash(Sequel.expr(Sequel[:a][:a]).as(:e), :b).must_equal(1=>2, 5=>6)
     @ds.select_hash(Sequel.qualify(:a, :a).as(:e), :b).must_equal(1=>2, 5=>6)
     @ds.select_hash(Sequel.identifier(:a).qualify(:a).as(:e), :b).must_equal(1=>2, 5=>6)
     @ds.select_hash([:a, :c], :b).must_equal([1, 3]=>2, [5, 7]=>6)
@@ -810,8 +810,8 @@ describe "Sequel::Dataset convenience methods" do
     ds = @ds.order(*@ds.columns)
     ds.insert(1, 2, 3, 9)
     ds.select_hash_groups(:a, :d).must_equal(1=>[4, 9], 5=>[8])
-    ds.select_hash_groups(:a__a___e, :d).must_equal(1=>[4, 9], 5=>[8])
-    ds.select_hash_groups(Sequel.expr(:a__a).as(:e), :d).must_equal(1=>[4, 9], 5=>[8])
+    ds.select_hash_groups(Sequel[:a][:a].as(:e), :d).must_equal(1=>[4, 9], 5=>[8])
+    ds.select_hash_groups(Sequel.expr(Sequel[:a][:a]).as(:e), :d).must_equal(1=>[4, 9], 5=>[8])
     ds.select_hash_groups(Sequel.qualify(:a, :a).as(:e), :d).must_equal(1=>[4, 9], 5=>[8])
     ds.select_hash_groups(Sequel.identifier(:a).qualify(:a).as(:e), :d).must_equal(1=>[4, 9], 5=>[8])
     ds.select_hash_groups([:a, :c], :d).must_equal([1, 3]=>[4, 9], [5, 7]=>[8])
@@ -891,14 +891,14 @@ describe "Sequel::Dataset DSL support" do
 
   it "should work with qualifying" do
     @ds.insert(10, 20)
-    @ds.get(:a__b).must_equal 20
+    @ds.get(Sequel[:a][:b]).must_equal 20
     @ds.get{a__b}.must_equal 20
     @ds.get(Sequel.qualify(:a, :b)).must_equal 20
   end
 
   it "should work with aliasing" do
     @ds.insert(10, 20)
-    @ds.get(:a__b___c).must_equal 20
+    @ds.get(Sequel[:a][:b].as(:c)).must_equal 20
     @ds.get{a__b.as(c)}.must_equal 20
     @ds.get(Sequel.qualify(:a, :b).as(:c)).must_equal 20
     @ds.get(Sequel.as(:b, :c)).must_equal 20
