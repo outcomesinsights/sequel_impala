@@ -1205,31 +1205,6 @@ describe "Dataset identifier methods" do
   end
 end if IDENTIFIER_MANGLING
 
-describe "Dataset defaults and overrides" do
-  before do
-    @db = DB
-    @db.create_table!(:a){Integer :a}
-    @ds = @db[:a].order(:a).extension(:set_overrides)
-  end
-  after do
-    @db.drop_table?(:a)
-  end
-
-  it "#set_defaults should set defaults that can be overridden" do
-    @ds = @ds.set_defaults(:a=>10)
-    @ds.insert
-    @ds.insert(:a=>20)
-    @ds.all.must_equal [{:a=>10}, {:a=>20}]
-  end
-
-  it "#set_overrides should set defaults that cannot be overridden" do
-    @ds = @ds.set_overrides(:a=>10)
-    @ds.insert
-    @ds.insert(:a=>20)
-    @ds.all.must_equal [{:a=>10}, {:a=>10}]
-  end
-end
-
 describe "Emulated functions" do
   before do
     @db = DB
