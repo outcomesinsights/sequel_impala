@@ -955,7 +955,7 @@ describe "Sequel::Dataset DSL support" do
 
   it "should work with multiple value arrays" do
     @ds.insert(20, 10)
-    @ds.quote_identifiers = false
+    @ds = @ds.with_quote_identifiers(false)
     @ds.filter([:a, :b]=>[[20, 10]]).all.must_equal [{:a=>20, :b=>10}]
     @ds.filter([:a, :b]=>[[10, 20]]).all.must_equal []
     @ds.filter([:a, :b]=>[[20, 10], [1, 2]]).all.must_equal [{:a=>20, :b=>10}]
