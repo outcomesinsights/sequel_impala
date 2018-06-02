@@ -18,7 +18,7 @@ describe "Impala column/table comments and describe" do
 end
 
 describe "Impala dataset" do
-  before do
+  before(:all) do
     @db = DB
     @db.create_table!(:items) do
       Integer :id
@@ -26,9 +26,14 @@ describe "Impala dataset" do
       String :name
     end
     @ds = @db[:items].order(:id)
+  end
+  before do
     @ds.insert(1, 10, 'a')
   end
   after do
+    @ds.delete
+  end
+  after(:all) do
     @db.drop_table?(:items)
   end
 
@@ -39,6 +44,10 @@ describe "Impala dataset" do
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
     @ds.where(:id=>2).update(:number=>40, :name=>'d')
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
+  end
+
+  it "should handle NULL values in application timestamps" do
+    DB.get(Sequel.cast(nil, Time)).must_be_nil
   end
 end
 
