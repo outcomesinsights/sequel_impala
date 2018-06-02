@@ -360,6 +360,10 @@ describe "Impala except/intersect" do
     DB[:a].import([:a, :b, :c], [[1,2,3], [1,2,3], [2,3,4], [3,4,5], [3,4,5]])
     DB[:b].import([:d, :e, :f], [[1,2,3], [2,3,4], [2,3,4], [4,5,6], [4,5,6]])
 
+    ds_no_cols = DB[:b].with_extend{def columns; [] end}
+    proc{DB[:a].intersect(ds_no_cols)}.must_raise Sequel::Error
+    proc{ds_no_cols.intersect(DB[:a])}.must_raise Sequel::Error
+
     DB[:a].intersect(DB[:b]).select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4]]
     DB[:b].intersect(DB[:a]).select_order_map([:d, :e, :f]).must_equal [[1,2,3], [2,3,4]]
     DB[:a].intersect(DB[:a]).select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4], [3,4,5]]
