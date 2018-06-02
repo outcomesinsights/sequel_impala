@@ -55,17 +55,25 @@ describe "Impala dataset" do
   it "#profile and Database#profile_for should handle query profiles" do
     @ds.profile(:foo).all
     @ds.profile(:bar).select(:id).all
+    @ds.profile.select(:number).all
     DB.profile_for(:foo)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select * FROM `items` ORDER BY `id`\n"
     DB.profile_for(:bar)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `id` FROM `items` ORDER BY `id`\n"
+    DB.profile_for[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `number` FROM `items` ORDER BY `id`\n"
   end if DB.adapter_scheme == :impala
 
   it "#query_id and Database#query_id_for should handle query ids" do
     @ds.query_id(:foo).all
     @ds.query_id(:bar).select(:id).all
+    @ds.query_id.select(:number).all
     foo = DB.query_id_for(:foo)
     bar = DB.query_id_for(:bar)
+    default = DB.query_id_for
     foo[:query_id].wont_equal bar[:query_id]
+    foo[:query_id].wont_equal default[:query_id]
+    default[:query_id].wont_equal bar[:query_id]
     foo[:start_time].must_be :<, bar[:start_time]
+    foo[:start_time].must_be :<, default[:start_time]
+    bar[:start_time].must_be :<, default[:start_time]
   end if DB.adapter_scheme == :impala
 end
 
