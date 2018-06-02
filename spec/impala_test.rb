@@ -250,6 +250,7 @@ describe "Impala :search_path option" do
     DB[Sequel[:s2][:t2]].count.must_equal 1
     DB[Sequel[:s3][:t3]].count.must_equal 1
     DB[:t1].select_map(:a).must_equal [1]
+    DB[Sequel[:t1].as(:b)].select_map(:a).must_equal [1]
     DB[:t1].join(:t2, [:a]).select_map([Sequel[:t1][:a], Sequel[:t2][:a]]).must_equal [[1, 1]]
     DB[:t1].join(:t2, [:a]).join(:t3, [:a]).select_map([Sequel[:t1][:a], Sequel[:t2][:a], Sequel[:t3][:a]]).must_equal [[1, 1, 1]]
   end
