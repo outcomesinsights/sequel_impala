@@ -236,7 +236,11 @@ describe "Impala parquet support" do
 end unless DB.adapter_scheme == :rbhive
 
 describe "Impala create/drop schemas" do
-  before do
+  before(:all) do
+    DB.drop_table?(Sequel[:s1][:items])
+    DB.drop_schema(:s1, :if_exists=>true)
+  end
+  after(:all) do
     DB.drop_table?(Sequel[:s1][:items])
     DB.drop_schema(:s1, :if_exists=>true)
   end
@@ -261,6 +265,32 @@ describe "Impala create/drop schemas" do
     DB.drop_schema(:s1)
     proc{DB.drop_schema(:s1)}.must_raise Sequel::DatabaseError
     DB.drop_schema(:s1, :if_exists=>true)
+  end
+end
+
+describe "Impala #tables and #views" do
+  before(:all) do
+    DB.drop_table?(Sequel[:s1][:items])
+    DB.drop_schema(:s1, :if_exists=>true)
+    DB.create_table(Sequel[:foo]){Integer :number}
+    DB.create_view(:bar, DB[:foo])
+    DB.create_schema(:s1)
+  end
+  after(:all) do
+    DB.drop_view(Sequel[:s1][:items_view]) rescue nil
+    DB.drop_table?(Sequel[:s1][:items])
+    DB.drop_schema(:s1, :if_exists=>true)
+    DB.drop_view(:bar) rescue nil
+    DB.drop_table?(:foo)
+  end
+
+  it "should support :schema option" do
+    DB.tables(:schema=>:s1).must_equal []
+    DB.views(:schema=>:s1).must_equal []
+    DB.create_table(Sequel[:s1][:items]){Integer :number}
+    DB.create_view(Sequel[:s1][:items_view], DB[Sequel[:s1][:items]])
+    DB.tables(:schema=>:s1).must_equal [:items]
+    DB.views(:schema=>:s1).must_equal [:items_view]
   end
 end
 
