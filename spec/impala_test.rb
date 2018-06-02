@@ -273,8 +273,7 @@ describe "Impala create/drop schemas" do
     DB.create_table(Sequel[:s1][:items]){Integer :number}
     DB[Sequel[:s1][:items]].insert(1)
     DB[Sequel[:s1][:items]].all.must_equal [{:number=>1}]
-    DB.drop_table(Sequel[:s1][:items])
-    DB.drop_schema(:s1)
+    DB.drop_schema(:s1, :cascade=>true)
     proc{DB.drop_schema(:s1)}.must_raise Sequel::DatabaseError
     DB.drop_schema(:s1, :if_exists=>true)
   end
