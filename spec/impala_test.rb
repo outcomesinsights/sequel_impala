@@ -5,7 +5,7 @@ describe "Impala column/table comments and describe" do
     @db = DB
   end
   after do
-    @db.drop_table?(:items)
+    @db.drop_table?(:items, :items2)
   end
 
   it "should ignore :cascade option to drop_table" do
@@ -22,6 +22,11 @@ describe "Impala column/table comments and describe" do
 
   it "should support :sort_by and :comment create_table options" do
     @db.create_table!(:items, :sort_by=>[:a], :comment=>'items comment'){Integer :a}
+  end
+
+  it "should support :sort_by and :as create_table options" do
+    @db.create_table!(:items){Integer :a}
+    @db.create_table!(:items2, :sort_by=>[:a], :as=>DB[:items])
   end
 
   it "should set table and column comments correctly" do
