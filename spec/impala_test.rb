@@ -72,6 +72,11 @@ describe "Impala dataset" do
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
   end
 
+  it "should have working left_semi_join and right_semi_join" do
+    @ds.join_table(:left_semi, @ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
+    @ds.join_table(:right_semi, @ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
+  end
+
   it "should hoist nested CTEs" do
     DB[:i2].with(:i2, DB[:i1].with(:i1, DB[:items])).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
   end
