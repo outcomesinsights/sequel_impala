@@ -227,11 +227,11 @@ describe "Impala :search_path option" do
     DB.create_schema(:s2, :if_not_exists=>true)
     DB.create_schema(:s3, :if_not_exists=>true)
     DB.create_table(Sequel[:s1][:t1]){Integer :a}
-    DB.create_table(Sequel[:s2][:t1]){Integer :a}
-    DB.create_table(Sequel[:s3][:t1]){Integer :a}
-    DB.create_table(Sequel[:s2][:t2]){Integer :a}
-    DB.create_table(Sequel[:s3][:t2]){Integer :a}
-    DB.create_table(Sequel[:s3][:t3]){Integer :a}
+    DB.create_table(Sequel[:s2][:t1]){Integer :b}
+    DB.create_table(Sequel[:s3][:t1]){Integer :c}
+    DB.create_table(Sequel[:s2][:t2]){Integer :d}
+    DB.create_table(Sequel[:s3][:t2]){Integer :e}
+    DB.create_table(Sequel[:s3][:t3]){Integer :f}
     DB.opts[:search_path] = 's1,s2,s3'
   end
   after do
@@ -244,15 +244,20 @@ describe "Impala :search_path option" do
 
   it "should use the search_path to implicitly qualify tables" do
     DB[:t1].insert(1)
-    DB[:t2].insert(1)
-    DB[:t3].insert(1)
-    DB[Sequel[:s1][:t1]].count.must_equal 1
-    DB[Sequel[:s2][:t2]].count.must_equal 1
-    DB[Sequel[:s3][:t3]].count.must_equal 1
+    DB[:t2].insert(2)
+    DB[:t3].insert(3)
+    DB[Sequel[:s1][:t1]].select_map(:a).must_equal [1]
+    DB[Sequel[:s2][:t2]].select_map(:d).must_equal [2]
+    DB[Sequel[:s3][:t3]].select_map(:f).must_equal [3]
     DB[:t1].select_map(:a).must_equal [1]
     DB[Sequel[:t1].as(:b)].select_map(:a).must_equal [1]
-    DB[:t1].join(:t2, [:a]).select_map([Sequel[:t1][:a], Sequel[:t2][:a]]).must_equal [[1, 1]]
-    DB[:t1].join(:t2, [:a]).join(:t3, [:a]).select_map([Sequel[:t1][:a], Sequel[:t2][:a], Sequel[:t3][:a]]).must_equal [[1, 1, 1]]
+    DB[:t1].cross_join(:t2).select_map([Sequel[:t1][:a], Sequel[:t2][:d]]).must_equal [[1, 2]]
+    DB[:t1].cross_join(:t2).cross_join(:t3).select_map([Sequel[:t1][:a], Sequel[:t2][:d], Sequel[:t3][:f]]).must_equal [[1, 2, 3]]
+
+    DB.opts[:search_path] = 's1,s2'
+    DB[Sequel[:t3]].all.must_equal [{:f=>3}]
+    DB.invalidate_table_schemas
+    proc{DB[Sequel[:t3]].all}.must_raise Sequel::DatabaseError
   end
 end
 
