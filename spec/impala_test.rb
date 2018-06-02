@@ -45,10 +45,18 @@ describe "Impala dataset" do
     @ds.where(:id=>2).update(:number=>40, :name=>'d')
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
   end
+end
 
+describe "Impala database" do
   it "should handle NULL values in application timestamps" do
     DB.get(Sequel.cast(nil, Time)).must_be_nil
   end
+
+  it "should handle disconnect errors" do
+    DB.pool.size.must_equal 1
+    proc{DB.synchronize{raise IOError}}.must_raise IOError
+    DB.pool.size.must_equal 0
+  end if DB.adapter_scheme == :impala || DB.adapter_scheme == :rbhive
 end
 
 describe "Impala dataset" do
