@@ -8,6 +8,12 @@ describe "Impala column/table comments and describe" do
     @db.drop_table?(:items)
   end
 
+  it "should ignore :cascade option to drop_table" do
+    @db.create_table!(:items){Integer :a}
+    @db.drop_table(:items, :cascade=>true)
+    proc{@db[:items].all}.must_raise Sequel::DatabaseError
+  end
+
   it "should set table and column comments correctly" do
     @db.create_table!(:items, :comment=>'tab_com') do
       Integer :i, :comment=>'col_com'
