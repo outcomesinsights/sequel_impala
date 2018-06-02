@@ -45,6 +45,12 @@ describe "Impala dataset" do
     @ds.where(:id=>2).update(:number=>40, :name=>'d')
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
   end
+
+  it "#compute_stats should compute the stats for the table" do
+    DB['show table stats items'].single_value!.must_equal -1
+    DB.compute_stats(:items)
+    DB['show table stats items'].single_value!.must_equal 1
+  end
 end
 
 describe "Impala database" do
