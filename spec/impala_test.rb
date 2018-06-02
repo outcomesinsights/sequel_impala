@@ -386,3 +386,12 @@ describe "Impala except/intersect" do
   end
 end
 
+describe "Impala Database#set" do
+  it "should allow setting values" do
+    h = {}
+    DB['SET'].take(2).each do |row|
+      h[row[:option]] = row[:value]
+    end
+    DB.set(h)
+  end
+end
