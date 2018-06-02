@@ -461,10 +461,8 @@ describe "Common Table Expressions" do
 
   it "should support using a CTE inside UNION/EXCEPT/INTERSECT" do
     @ds.union(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-    if @ds.supports_intersect_except?
-      @ds.intersect(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
-      @ds.except(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal []
-    end
+    @ds.intersect(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal [1,2,3,4,5,6]
+    @ds.except(@db[:t].with(:t, @ds)).select_order_map(:id).must_equal []
   end
 end
 
