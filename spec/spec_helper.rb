@@ -16,3 +16,15 @@ end
 
 IDENTIFIER_MANGLING = !!ENV['IDENTIFIER_MANGLING'] unless defined?(IDENTIFIER_MANGLING)
 DB.extension(:identifier_mangling) if IDENTIFIER_MANGLING
+
+class Minitest::HooksSpec
+  def log
+    begin
+      DB.loggers << Logger.new(STDOUT)
+      yield
+    ensure
+     DB.loggers.pop
+    end
+  end
+end
+
