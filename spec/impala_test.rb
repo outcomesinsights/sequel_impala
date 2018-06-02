@@ -46,6 +46,10 @@ describe "Impala dataset" do
     @ds.all.must_equal [{:id=>1, :number=>30, :name=>'c'}]
   end
 
+  it "should hoist nested CTEs" do
+    DB[:i2].with(:i2, DB[:i1].with(:i1, DB[:items])).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
+  end
+
   it "#compute_stats should compute the stats for the table" do
     DB['show table stats items'].single_value!.must_equal -1
     DB.compute_stats(:items)
