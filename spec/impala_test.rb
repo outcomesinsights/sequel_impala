@@ -51,6 +51,13 @@ describe "Impala dataset" do
     DB.compute_stats(:items)
     DB['show table stats items'].single_value!.must_equal 1
   end
+
+  it "#profile and Database#profile_for should handle query profiles" do
+    @ds.profile(:foo).all
+    @ds.profile(:bar).select(:id).all
+    DB.profile_for(:foo)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select * FROM `items` ORDER BY `id`\n"
+    DB.profile_for(:bar)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `id` FROM `items` ORDER BY `id`\n"
+  end if DB.adapter_scheme == :impala
 end
 
 describe "Impala database" do
