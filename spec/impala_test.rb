@@ -14,6 +14,12 @@ describe "Impala column/table comments and describe" do
     proc{@db[:items].all}.must_raise Sequel::DatabaseError
   end
 
+  it "should support :purge option to drop_table" do
+    @db.create_table!(:items){Integer :a}
+    @db.drop_table(:items, :purge=>true)
+    proc{@db[:items].all}.must_raise Sequel::DatabaseError
+  end
+
   it "should set table and column comments correctly" do
     @db.create_table!(:items, :comment=>'tab_com') do
       Integer :i, :comment=>'col_com'
