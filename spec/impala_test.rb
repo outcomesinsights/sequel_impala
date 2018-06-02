@@ -27,6 +27,11 @@ describe "Impala column/table comments and describe" do
   it "should support :sort_by and :as create_table options" do
     @db.create_table!(:items){Integer :a}
     @db.create_table!(:items2, :sort_by=>[:a], :as=>DB[:items])
+    @db.create_table!(Sequel[:items2], :sort_by=>[:a], :as=>DB[:items])
+    @db.create_table!(Sequel.qualify(@db.get{current_database.function}, :items2), :sort_by=>[:a], :as=>DB[:items])
+    @db.create_table!('items2', :sort_by=>[:a], :as=>DB[:items])
+    @db.create_table!(Sequel.lit('items2'), :sort_by=>[:a], :as=>DB[:items])
+    proc{@db.create_table!(Object.new, :sort_by=>[:a], :as=>DB[:items])}.must_raise Sequel::Error
   end
 
   it "should set table and column comments correctly" do
