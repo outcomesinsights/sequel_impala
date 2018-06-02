@@ -56,6 +56,14 @@ describe "Impala dataset" do
     DB['show table stats items'].single_value!.must_equal 1
   end
 
+  it "#invalidate_metadata should invalidate metadata" do
+    DB.query_id_and_profile{DB.invalidate_metadata(:items)}
+    DB.profile_for[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: invalidate METADATA `items`\n"
+
+    DB.query_id_and_profile{DB.invalidate_metadata}
+    DB.profile_for[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: invalidate METADATA\n"
+  end
+
   it "Database#query_id_and_profile should allow profiling with a block based API" do
     DB.query_id_and_profile(:foo, :foo){@ds.all}
     DB.query_id_and_profile(:bar, :bar){@ds.select(:id).all}
