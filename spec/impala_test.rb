@@ -58,6 +58,15 @@ describe "Impala dataset" do
     DB.profile_for(:foo)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select * FROM `items` ORDER BY `id`\n"
     DB.profile_for(:bar)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `id` FROM `items` ORDER BY `id`\n"
   end if DB.adapter_scheme == :impala
+
+  it "#query_id and Database#query_id_for should handle query ids" do
+    @ds.query_id(:foo).all
+    @ds.query_id(:bar).select(:id).all
+    foo = DB.query_id_for(:foo)
+    bar = DB.query_id_for(:bar)
+    foo[:query_id].wont_equal bar[:query_id]
+    foo[:start_time].must_be :<, bar[:start_time]
+  end if DB.adapter_scheme == :impala
 end
 
 describe "Impala database" do
