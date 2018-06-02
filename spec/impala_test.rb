@@ -48,7 +48,11 @@ describe "Impala dataset" do
 end
 
 describe "Impala database" do
-  it "should handle NULL values in application timestamps" do
+  it "should have Database#values return a table" do
+    DB.values([[1,2], [3, 4]]).all.must_equal [{:"1"=>1, :"2"=>2}, {:"1"=>3, :"2"=>4}]
+  end
+
+  it "should handle NULL values in timestamps" do
     DB.get(Sequel.cast(nil, Time)).must_be_nil
   end
 
