@@ -20,6 +20,10 @@ describe "Impala column/table comments and describe" do
     proc{@db[:items].all}.must_raise Sequel::DatabaseError
   end
 
+  it "should support :sort_by and :comment create_table options" do
+    @db.create_table!(:items, :sort_by=>[:a], :comment=>'items comment'){Integer :a}
+  end
+
   it "should set table and column comments correctly" do
     @db.create_table!(:items, :comment=>'tab_com') do
       Integer :i, :comment=>'col_com'
