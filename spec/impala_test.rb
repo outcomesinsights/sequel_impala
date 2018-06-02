@@ -56,6 +56,26 @@ describe "Impala dataset" do
     DB['show table stats items'].single_value!.must_equal 1
   end
 
+  it "Database#query_id_and_profile should allow profiling with a block based API" do
+    DB.query_id_and_profile(:foo, :foo){@ds.all}
+    DB.query_id_and_profile(:bar, :bar){@ds.select(:id).all}
+    DB.query_id_and_profile{@ds.select(:number).all}
+
+    DB.profile_for(:foo)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select * FROM `items` ORDER BY `id`\n"
+    DB.profile_for(:bar)[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `id` FROM `items` ORDER BY `id`\n"
+    DB.profile_for[/Sql Statement: [^\n]+\n/].must_equal "Sql Statement: select `number` FROM `items` ORDER BY `id`\n"
+
+    foo = DB.query_id_for(:foo)
+    bar = DB.query_id_for(:bar)
+    default = DB.query_id_for
+    foo[:query_id].wont_equal bar[:query_id]
+    foo[:query_id].wont_equal default[:query_id]
+    default[:query_id].wont_equal bar[:query_id]
+    foo[:start_time].must_be :<, bar[:start_time]
+    foo[:start_time].must_be :<, default[:start_time]
+    bar[:start_time].must_be :<, default[:start_time]
+  end if DB.adapter_scheme == :impala
+
   it "#profile and Database#profile_for should handle query profiles" do
     @ds.profile(:foo).all
     @ds.profile(:bar).select(:id).all
