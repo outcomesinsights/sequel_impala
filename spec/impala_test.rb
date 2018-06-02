@@ -366,6 +366,17 @@ describe "Impala except/intersect" do
     DB[:a].except(DB[:a]).select_order_map([:a, :b, :c]).must_equal []
     DB[:b].except(DB[:b]).select_order_map([:d, :e, :f]).must_equal []
 
+    [:not_exists, :not_in, :left_join].each do |strategy|
+      dsb = DB[:b].select{[d.as(:a), e.as(:b), f.as(:c)]}
+      [[:a], [:a, :b]].each do |key|
+        next if key.length > 1 && strategy == :not_in
+        DB[:a].except_strategy(strategy, *key).except(dsb).distinct.select_order_map([:a, :b, :c]).must_equal [[3,4,5]]
+        dsb.except_strategy(strategy, *key).except(DB[:a]).distinct.select_order_map([:a, :b, :c]).must_equal [[4,5,6]]
+        DB[:a].except_strategy(strategy, *key).except(DB[:a]).select_order_map([:a, :b, :c]).must_equal []
+        dsb.except_strategy(strategy, *key).except(dsb).select_order_map([:a, :b, :c]).must_equal []
+      end
+    end
+
     DB[:a].intersect(DB[:b]).unfiltered.select_order_map([:a, :b, :c]).must_equal [[1,2,3], [2,3,4]]
     DB[:a].except(DB[:b]).unfiltered.select_order_map([:a, :b, :c]).must_equal [[3,4,5]]
 
