@@ -1,0 +1,46 @@
+PATH
+  remote: .
+  specs:
+    sequel_impala (1.1.0)
+      gssapi (~> 1.2)
+      sequel (~> 5.0)
+      thrift (~> 0.9)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (4.2.10)
+      i18n (~> 0.7)
+      minitest (~> 5.1)
+      thread_safe (~> 0.3, >= 0.3.4)
+      tzinfo (~> 1.1)
+    concurrent-ruby (1.0.5)
+    ffi (1.9.25)
+    gssapi (1.2.0)
+      ffi (>= 1.0.1)
+    i18n (0.9.5)
+      concurrent-ruby (~> 1.0)
+    minitest (5.11.3)
+    minitest-hooks (1.5.0)
+      minitest (> 5.3)
+    minitest-shared_description (1.0.0)
+    rake (12.3.1)
+    sequel (5.9.0)
+    thread_safe (0.3.6)
+    thrift (0.11.0.0)
+    tzinfo (1.2.5)
+      thread_safe (~> 0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activesupport (~> 4)
+  minitest (~> 5.7)
+  minitest-hooks (> 0)
+  minitest-shared_description (> 0)
+  rake (> 0)
+  sequel_impala!
+
+BUNDLED WITH
+   1.16.1
