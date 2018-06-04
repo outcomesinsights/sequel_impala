@@ -250,11 +250,8 @@ module Sequel
       private
 
       def _tables(opts)
-        m = output_identifier_meth
-        metadata_dataset.with_sql("SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}").
-          select_map(:name).map do |table|
-            m.call(table)
-          end
+        metadata_dataset.with_sql("SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}#{" LIKE #{literal(opts[:like])}" if opts[:like]}").
+          select_map(:name).map(&output_identifier_meth)
       end
 
       # Impala uses ADD COLUMNS instead of ADD COLUMN.  As its use of
