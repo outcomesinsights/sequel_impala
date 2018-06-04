@@ -550,18 +550,19 @@ module Sequel
         ds.clone(:from => ds.opts[:from].map{|t| db.implicit_qualify(t)})
       end
 
+      # Create a LEFT SEMI join
+      def left_semi_join(*args, &block)
+        join_table(:left_semi, *args, &block)
+      end
+
+      # Create a RIGHT SEMI join
+      def right_semi_join(*args, &block)
+        join_table(:right_semi, *args, &block)
+      end
+
       # Implicitly qualify tables if using the :search_path database option.
       def join_table(type, table, expr=nil, options=OPTS, &block)
-        opts = options
-        if opts.empty? && expr.is_a?(Hash)
-          opts = expr
-        end
-
-        if opts[:semi] && type == :left
-          type = :left_semi
-        end
-
-        super(type, db.implicit_qualify(table), expr, options.reject { |k, _| k == :semi }, &block)
+        super(type, db.implicit_qualify(table), expr, options, &block)
       end
 
       # Emulate TRUNCATE by using INSERT OVERWRITE selecting all columns
