@@ -1,10 +1,12 @@
 language: ruby
 rvm:
 - 2.4
+env:
+- IMPALA_URI="impala://localhost/jeremy"
 sudo: false
 before_install:
 - gem install tping
-script: echo "No tests here!"
+script: ./.travis.sh
 after_success:
 - tping $TRAVIS_PRO_TOKEN outcomesinsights jigsaw_builder pro
 notifications:
