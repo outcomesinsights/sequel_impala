@@ -111,11 +111,15 @@ module Impala
 
       query = sanitize_query(raw_query)
       log_debug(query.slice(0,100))
+      query_options = Hash[query_options]
+      cursor_options = query_options.delete(:cursor_options)
       handle = send_query(query, query_options)
 
       handle_proc.call(handle) if handle_proc
 
-      cursor = Cursor.new(handle, @service, @options.merge(loggers: @loggers))
+      cursor_options = cursor_options ? @options.merge(cursor_options) : @options.dup
+      cursor_options[:loggers] = @loggers
+      cursor = Cursor.new(handle, @service, cursor_options)
       cursor.wait!
       cursor
     end

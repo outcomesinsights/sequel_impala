@@ -50,7 +50,7 @@ module Sequel
           begin
             cursor = record_query_id(opts) do
               log_connection_yield(sql, c) do
-                c.execute(sql, handle_proc: cursor_logging_proc){}
+                c.execute(sql, handle_proc: cursor_logging_proc, cursor_options: {cancel_if: opts[:cancel_if]}){}
               end
             end
             yield cursor if block_given?
@@ -211,11 +211,25 @@ module Sequel
         clone(:profile_name => profile_name)
       end
 
+      def cancel_if(&block)
+        clone(:cancel_if => block)
+      end
+
       def query_id(query_id_name=:default)
         clone(:query_id_name => query_id_name)
       end
 
       private
+
+      [:execute, :execute_dui, :execute_ddl, :execute_insert].each do |meth|
+        define_method(meth) do |sql, opts=OPTS, &block|
+          if cancel_if = self.opts[:cancel_if]
+            opts = Hash[opts]
+            opts[:cancel_if] = cancel_if
+          end
+          super(sql, opts, &block)
+        end
+      end
 
       # Unlike the jdbc/hive2 driver, the impala driver requires you escape
       # some values in string literals to get correct results, but not the
