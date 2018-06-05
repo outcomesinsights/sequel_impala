@@ -2,7 +2,7 @@ language: ruby
 rvm:
 - 2.4
 env:
-- IMPALA_URI="impala://localhost/jeremy"
+- IMPALA_URL="impala://localhost/jeremy"
 sudo: false
 before_install:
 - gem install tping
