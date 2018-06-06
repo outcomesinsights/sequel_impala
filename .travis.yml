@@ -8,7 +8,7 @@ env:
 before_install:
 - gem install tping
 - bundle install
-script: travis_wait 40 ./.travis.sh
+script: travis_wait 40 bash -c "./.travis.sh"
 after_success:
 - tping $TRAVIS_PRO_TOKEN outcomesinsights jigsaw_builder pro
 notifications:
