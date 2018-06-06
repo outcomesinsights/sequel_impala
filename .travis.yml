@@ -1,13 +1,14 @@
 language: ruby
 rvm:
 - 2.4
+dist: trusty
+sudo: false
 env:
 - IMPALA_URL="impala://localhost/jeremy"
-sudo: false
 before_install:
 - gem install tping
 - bundle install
-script: ./.travis.sh
+script: travis_wait 40 ./.travis.sh
 after_success:
 - tping $TRAVIS_PRO_TOKEN outcomesinsights jigsaw_builder pro
 notifications:
