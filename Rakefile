@@ -1,5 +1,6 @@
 require "rake"
 require "rake/clean"
+require "rake/testtask"
 
 CLEAN.include ["sequel_impala-*.gem", "rdoc"]
 
@@ -8,14 +9,14 @@ task :package=>[:clean] do |p|
   sh %{#{FileUtils::RUBY} -S gem build sequel_impala.gemspec}
 end
 
-### Specs
-
-desc "Run specs"
-task "spec" do
-  sh "#{FileUtils::RUBY} -e 'ARGV.each{|f| require f}' ./spec/*_test.rb"
+Rake::TestTask.new do |t|
+  t.libs << "."
+  t.libs << "spec"
+  t.test_files = FileList['spec/**/*_test.rb']
+  t.warning = false
 end
 
-task :default => :spec
+task :default => :test
 
 ### RDoc
 
