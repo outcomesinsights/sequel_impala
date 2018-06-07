@@ -75,6 +75,8 @@ describe "Impala dataset" do
   it "should have working left_semi_join and right_semi_join" do
     @ds.join_table(:left_semi, @ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
     @ds.join_table(:right_semi, @ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
+    @ds.left_semi_join(@ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
+    @ds.right_semi_join(@ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
   end
 
   it "should hoist nested CTEs" do
@@ -361,6 +363,13 @@ describe "Impala #tables and #views" do
     DB.create_view(Sequel[:s1][:items_view], DB[Sequel[:s1][:items]])
     DB.tables(:schema=>:s1).must_equal [:items]
     DB.views(:schema=>:s1).must_equal [:items_view]
+  end
+
+  it "should support :like option" do
+    DB.tables(:like=>'foo*').must_equal [:foo]
+    DB.views(:like=>'bar*').must_equal [:bar]
+    DB.tables(:like=>'bar*').must_equal []
+    DB.views(:like=>'foo*').must_equal []
   end
 end
 
