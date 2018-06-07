@@ -342,7 +342,8 @@ describe "Impala #tables and #views" do
   before(:all) do
     DB.drop_table?(Sequel[:s1][:items])
     DB.drop_schema(:s1, :if_exists=>true)
-    DB.create_table(Sequel[:foo]){Integer :number}
+    DB.drop_view(:bar) rescue nil
+    DB.create_table!(Sequel[:foo]){Integer :number}
     DB.create_view(:bar, DB[:foo])
     DB.create_schema(:s1)
   end
