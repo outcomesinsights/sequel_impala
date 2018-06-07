@@ -4,7 +4,8 @@ rvm:
 dist: trusty
 sudo: false
 env:
-- IMPALA_URL="impala://localhost/jeremy"
+- IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 0"
+- IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 1"
 before_install:
 - gem install tping
 - bundle install
