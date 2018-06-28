@@ -2,7 +2,6 @@ Gem::Specification.new do |s|
   s.name = 'sequel_impala'
   s.version = '1.1.0'
   s.platform = Gem::Platform::RUBY
-  s.has_rdoc = true
   s.extra_rdoc_files = ["LICENSE"]
   s.rdoc_options += ["--quiet", "--line-numbers", "--inline-source", '--title', 'sequel_impala: Sequel support for Impala database', '--main', 'README.md']
   s.license = "MIT"
