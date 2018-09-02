@@ -25,7 +25,7 @@ describe "Database schema parser" do
       begin
         DB.schema(:items, :reload=>true).must_be_kind_of(Array)
         DB.schema(:items, :reload=>true).first.first.must_equal :number
-      ensure 
+      ensure
       end
     end
 
@@ -42,7 +42,7 @@ describe "Database schema parser" do
       begin
         DB.schema(ds, :reload=>true).must_be_kind_of(Array)
         DB.schema(ds, :reload=>true).first.first.must_equal :number
-      ensure 
+      ensure
         DB.identifier_output_method = :reverse
         DB.identifier_input_method = :reverse
         DB.drop_table(:items)
