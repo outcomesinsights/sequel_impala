@@ -326,6 +326,24 @@ describe "Database#tables and #views" do
     ts.wont_include(:sequel_test_view)
   end
 
+  describe "when using qualify on a known schema" do
+    before do
+      @db.create_schema(:s1, if_not_exists: true)
+      @db.create_table(Sequel.qualify(:s1, :t1)){Integer :a}
+    end
+
+    it "#tables should return an array of QualifiedIdentier if qualify: true and schema given" do
+      ts = @db.tables(qualify: true, schema: :s1)
+      ts.must_be_kind_of(Array)
+      ts.each{|t| t.must_be_kind_of(Sequel::SQL::QualifiedIdentifier)}
+      ts.must_include(Sequel.qualify(:s1, :t1))
+    end
+
+    after do
+      @db.drop_schema(:s1, if_exists: true, cascade: true, purge: true)
+    end
+  end
+
   it "#views should return an array of symbols" do
     ts = @db.views
     ts.must_be_kind_of(Array)

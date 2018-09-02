@@ -250,8 +250,10 @@ module Sequel
       private
 
       def _tables(opts)
-        metadata_dataset.with_sql("SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}#{" LIKE #{literal(opts[:like])}" if opts[:like]}").
+        tabs = metadata_dataset.with_sql("SHOW TABLES#{" IN #{quote_identifier(opts[:schema])}" if opts[:schema]}#{" LIKE #{literal(opts[:like])}" if opts[:like]}").
           select_map(:name).map(&output_identifier_meth)
+        tabs = tabs.map { |tab| Sequel.qualify(opts[:schema], tab) } if opts[:schema] && opts[:qualify]
+        tabs
       end
 
       # Impala uses ADD COLUMNS instead of ADD COLUMN.  As its use of
@@ -361,7 +363,7 @@ module Sequel
       # SHOW TABLE STATS will raise an error if given a view and not a table,
       # so use that to differentiate tables from views.
       def is_valid_table?(t, opts=OPTS)
-        t = Sequel.qualify(opts[:schema], t) if opts[:schema]
+        t = Sequel.qualify(opts[:schema], t) if opts[:schema] && t.is_a?(Symbol)
         rows = describe(t, :formatted=>true)
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
           row[:type].to_s.strip !~ /VIEW/
