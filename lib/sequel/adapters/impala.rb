@@ -66,8 +66,9 @@ module Sequel
       end
 
       def cursor_logging_proc
-        return nil unless ENV['SEQUEL_IMPALA_QUERY_URL']
-        proc { |handle| log_query_url(handle) }
+        ENV["SEQUEL_IMPALA_QUERY_URL"] ?
+          proc { |handle| log_query_url(handle) } :
+          proc { |handle| log_query_id(handle) }
       end
 
       def log_query_url(handle)
@@ -76,6 +77,13 @@ module Sequel
         log_info(sprintf(url_template, query_id: handle.id)) if url_template
       rescue
         log_info("Failed to log Query URL given, '#{url_template.inspect}' and #{cursor.inspect}")
+      end
+
+      def log_query_id(handle)
+        return unless handle
+        log_info("Query ID: #{handle.id}")
+      rescue
+        log_info("Failed to log Query ID given #{handle} and #{cursor.inspect}")
       end
 
       def query_id_and_profile(query_id_name=:default, profile_name=:default)
