@@ -205,6 +205,21 @@ module Sequel
         false
       end
 
+      # If :table_exists_uses_show_tables Database option is used,
+      # use SHOW TABLES [ IN database_name ] LIKE 'table_name' to
+      # determine if the table exists.  This can avoid errors showing
+      # up in the Impala query logs.
+      def table_exists?(name)
+        return super unless opts[:table_exists_uses_show_tables]
+
+        sch, table_name = schema_and_table(name)
+        sql = String.new
+        sql << "SHOW TABLES"
+        sql << " IN #{quote_identifier(sch)}" if sch
+        sql << " LIKE #{literal(dataset.escape_like(table_name).downcase)}"
+        dataset.with_sql(sql).all.length == 1
+      end
+
       # Check that the tables returned by the JDBC driver are actually valid
       # tables and not views.  The Hive2 JDBC driver returns views when listing
       # tables and nothing when listing views.
