@@ -314,6 +314,7 @@ describe "Database#tables and #views" do
     @db.create_view :sequel_test_view, @db[:sequel_test_table]
   end
   after do
+    @db.opts[:treat_views_as_tables] = false
     @db.drop_view :sequel_test_view
     @db.drop_table :sequel_test_table
   end
@@ -324,6 +325,15 @@ describe "Database#tables and #views" do
     ts.each{|t| t.must_be_kind_of(Symbol)}
     ts.must_include(:sequel_test_table)
     ts.wont_include(:sequel_test_view)
+  end
+
+  it "#tables should return an array of table and view symbols if :treat_views_as_tables option is used" do
+    @db.opts[:treat_views_as_tables] = true
+    ts = @db.tables
+    ts.must_be_kind_of(Array)
+    ts.each{|t| t.must_be_kind_of(Symbol)}
+    ts.must_include(:sequel_test_table)
+    ts.must_include(:sequel_test_view)
   end
 
   describe "when using qualify on a known schema" do
@@ -350,6 +360,11 @@ describe "Database#tables and #views" do
     ts.each{|t| t.must_be_kind_of(Symbol)}
     ts.wont_include(:sequel_test_table)
     ts.must_include(:sequel_test_view)
+  end
+
+  it "#views should return an empty array if :treat_views_as_tables option is used" do
+    @db.opts[:treat_views_as_tables] = true
+    @db.views.must_equal []
   end
 
   describe "with identifier mangling" do
