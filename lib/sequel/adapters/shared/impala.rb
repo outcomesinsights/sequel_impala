@@ -375,9 +375,11 @@ module Sequel
         end
       end
 
-      # SHOW TABLE STATS will raise an error if given a view and not a table,
-      # so use that to differentiate tables from views.
+      # Use a separate DESCRIBE query for each table to determine if it is a
+      # table or a view.
       def is_valid_table?(t, opts=OPTS)
+        return true if self.opts[:treat_views_as_tables]
+
         t = Sequel.qualify(opts[:schema], t) if opts[:schema] && t.is_a?(Symbol)
         rows = describe(t, :formatted=>true)
         if row = rows.find{|r| r[:name].to_s.strip == 'Table Type:'}
