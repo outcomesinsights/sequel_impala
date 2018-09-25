@@ -15,6 +15,13 @@ jobs:
     env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 0"
   - stage: Second Set
     env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 1"
+  - stage: First Set
+    env: IMPALA_URL="mock://impala" TESTS_DIV_MOD="2 0"
+  - stage: Second Set
+    env: IMPALA_URL="mock://impala" TESTS_DIV_MOD="2 1"
+  allow_failures:
+    - env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 0"
+    - env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 1"
 notifications:
   slack:
     secure: or/D+X/N+vUmF5n72WCfUlOKK7jBEdBc2t8iERdwTtWqriV2sjqnNsh1Qg71htHa5Ncnhee41utO7VEXO1JrGZYu1Nz/ldZDje5oB6csrxTeUc85kyhF/eM0R/57sdXnW9lg4fzC0wcnMGqWW50usS9JKLw7KEzolqOLbeZYZRCKhQxFzPZRhDfz/1QrxCAbsePuwzdWIz93lkaKc2E3/6bnHKqmt7/8HeaHVTaQaJUnpVd97l3N3YBv4e25GvffNmFdziiYX4BXPjrd85cjjy2iHbUTGHiiNYzouwFw0jcrF6NHYIztqAmWU2e59R2Y6AUoXKEBR+ecYe3XdZmzX0M0jHfYjn7D1eiegpgYXuQpFZwFtP+qbF3ZfAL2jD4rrpUCqk1UsjJDEPsZZzUlVoNMiWWhAE8bYxLk10UzBsG2JAnaoQzksbm3qfcZ+i2jbsgSAFQbc3mE4qmw4UBUgOVf9wuDXDZGCsOCJj8KFDyqbILQWHdPLzGmTqQd3w9WWiV5XYO9CKKsf1Vno+NYrX8q83gnrFGWz359sSbnRSo795/HAowVMBoHhdcTyxxAwEfh+8PRprH7xhByVw1ytIN83/Q39CdS6DmI0sSHUOOU3/xuzqocb9JFmWQ1NplzKGK8dh89ZjYVuWAPkgwd7YEUHWYfrwlmt3G7+AYUnwQ=
