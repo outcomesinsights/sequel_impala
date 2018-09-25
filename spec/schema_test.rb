@@ -129,13 +129,29 @@ describe "Database schema modifiers" do
     @ds = @db[:items]
   end
   after do
+    @db.opts[:table_exists_uses_show_tables] = false
     @db.drop_table?(:items)
     @db.drop_table?(:items2)
   end
 
   it "should create tables correctly" do
+    current_database = @db.get{current_database.function}
+    @db.table_exists?(:items).must_equal false
+    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal false
+
+    @db.opts[:table_exists_uses_show_tables] = true
+    @db.table_exists?(:items).must_equal false
+    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal false
+
     @db.create_table!(:items){Integer :number}
+    @db.opts[:table_exists_uses_show_tables] = false
     @db.table_exists?(:items).must_equal true
+    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal true
+
+    @db.opts[:table_exists_uses_show_tables] = true
+    @db.table_exists?(:items).must_equal true
+    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal true
+
     @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:number]
     @ds.insert([10])
     @ds.columns!.must_equal [:number]
