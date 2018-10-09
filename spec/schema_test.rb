@@ -135,22 +135,22 @@ describe "Database schema modifiers" do
   end
 
   it "should create tables correctly" do
-    current_database = @db.get{current_database.function}
+    cur = @db.get{current_database.function}
     @db.table_exists?(:items).must_equal false
-    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal false
+    @db.table_exists?(Sequel.qualify(cur, :items)).must_equal false
 
     @db.opts[:table_exists_uses_show_tables] = true
     @db.table_exists?(:items).must_equal false
-    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal false
+    @db.table_exists?(Sequel.qualify(cur, :items)).must_equal false
 
     @db.create_table!(:items){Integer :number}
     @db.opts[:table_exists_uses_show_tables] = false
     @db.table_exists?(:items).must_equal true
-    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal true
+    @db.table_exists?(Sequel.qualify(cur, :items)).must_equal true
 
     @db.opts[:table_exists_uses_show_tables] = true
     @db.table_exists?(:items).must_equal true
-    @db.table_exists?(Sequel.qualify(current_database, :items)).must_equal true
+    @db.table_exists?(Sequel.qualify(cur, :items)).must_equal true
 
     @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:number]
     @ds.insert([10])
