@@ -56,6 +56,7 @@ module Impala
       @cancel_if = options.delete(:cancel_if)
       @progress_reporter = ProgressReporter.new(self, @options)
       @poll_every = options.fetch(:poll_every, 0.5)
+      @log_every = options.fetch(:log_every, 1000)
     end
 
     def columns
@@ -109,14 +110,40 @@ module Impala
 
     # Returns true if the query is done running, and results can be fetched.
     def query_done?
+      @number_of_calls_to_query_done += 1
+
+      state = @service.get_state(@handle)
+
+      log_query_done_was_called(state) if should_log_query_done?
+
+      if state != @last_value_from_get_state
+        log_debug("get_state changed from #{@last_value_from_get_state} to #{state}")
+        @last_value_from_get_state = state
+      end
+
+      unless Protocol::Beeswax::QueryState::VALID_VALUES.include?(state)
+        log_debug("State is #{state} which is not one of the expected values: #{Protocol::Beeswax::QueryState::VALID_VALUES.inspect}")
+      end
+
       [
         Protocol::Beeswax::QueryState::EXCEPTION,
         Protocol::Beeswax::QueryState::FINISHED
-      ].include?(@service.get_state(@handle))
+      ].include?(state)
+    end
+
+    def log_query_done_was_called(state)
+      log_debug("Still polling Impala via get_state. Current state is: #{state}")
+    end
+
+    def should_log_query_done?
+      return false if @log_every.zero?
+      return (@number_of_calls_to_query_done % @log_every) == 0
     end
 
     # Blocks until the query done running.
     def wait!
+      @number_of_calls_to_query_done = 0
+      @last_value_from_get_state = -1
       until query_done?
         check_cancel
         periodic_callback
@@ -174,7 +201,6 @@ module Impala
     end
 
     def exceptional?
-      log_debug("exceptional? #{@service.get_state(@handle)}")
       @service.get_state(@handle) == Protocol::Beeswax::QueryState::EXCEPTION
     end
 
