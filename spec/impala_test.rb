@@ -82,6 +82,10 @@ describe "Impala dataset" do
   it "should support inner join with :semi_join_first option to do a semi join before the inner join" do
     @ds.join(@ds.as(:b), [:id]).select{[items[:id], b[:id].as(:b_id)]}.all.must_equal [{:id=>1, :b_id=>1}]
     @ds.join(@ds.as(:b), [:id], :semi_join_first=>true).select{[items[:id], b[:id].as(:b_id)]}.all.must_equal [{:id=>1, :b_id=>1}]
+    @ds.join(@ds.as(:b), [:id], :semi_join_first=>:temp_items_b).select{[items[:id], b[:id].as(:b_id)]}.all.must_equal [{:id=>1, :b_id=>1}]
+    @ds.join(@ds.as(:b), [:id], :semi_join_first=>:temp_items_b).select{[items[:id], b[:id].as(:b_id)]}.from_self.all.must_equal [{:id=>1, :b_id=>1}]
+    @db[:items].right_semi_join(@ds.join(@ds.as(:b), [:id], :semi_join_first=>:temp_items_b).select{[items[:id], b[:id].as(:b_id)]}.from_self(:alias=>:c), [:id]).all.must_equal [{:id=>1, :b_id=>1}]
+    proc{@ds.join(@ds.as(:b), [:id], :semi_join_first=>Object.new)}.must_raise Sequel::Error
   end
 
   it "should hoist nested CTEs" do
