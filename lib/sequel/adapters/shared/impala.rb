@@ -583,6 +583,12 @@ module Sequel
       # :shuffle, or an array containing both. Use of a join hint automatically
       # forces the use of the STRAIGHT_JOIN in the query.
       def join_table(type, table, expr=nil, options=OPTS, &block)
+        if type == :inner && options[:semi_join_first]
+          ds = left_semi_join(table, expr, options, &block)
+          alias_name = alias_symbol(opts[:from].first)
+          return ds.from_self(:alias=>alias_name).join(table, expr, options.merge(semi_join_first: nil))
+        end
+
         ds = super(type, db.implicit_qualify(table), expr, options, &block)
 
         if join_hints = options[:hints]

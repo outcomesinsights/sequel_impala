@@ -79,6 +79,11 @@ describe "Impala dataset" do
     @ds.right_semi_join(@ds.as(:b), [:id]).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
   end
 
+  it "should support inner join with :semi_join_first option to do a semi join before the inner join" do
+    @ds.join(@ds.as(:b), [:id]).select{[items[:id], b[:id].as(:b_id)]}.all.must_equal [{:id=>1, :b_id=>1}]
+    @ds.join(@ds.as(:b), [:id], :semi_join_first=>true).select{[items[:id], b[:id].as(:b_id)]}.all.must_equal [{:id=>1, :b_id=>1}]
+  end
+
   it "should hoist nested CTEs" do
     DB[:i2].with(:i2, DB[:i1].with(:i1, DB[:items])).all.must_equal [{:id=>1, :number=>10, :name=>'a'}]
   end
