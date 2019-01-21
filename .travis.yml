@@ -5,13 +5,17 @@ dist: trusty
 sudo: false
 before_install:
 - bundle install
-script: travis_wait 45 bash -c "./.travis.sh"
+script: travis_wait 50 bash -c "./.travis.sh"
 jobs:
   include:
   - stage: First Set
-    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 0"
+    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="4 0"
   - stage: Second Set
-    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="2 1"
+    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="4 1"
+  - stage: Third Set
+    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="4 2"
+  - stage: Fourth Set
+    env: IMPALA_URL="impala://localhost/jeremy" TESTS_DIV_MOD="4 3"
   - stage: deploy
     before_install: gem install tping
     install: true
