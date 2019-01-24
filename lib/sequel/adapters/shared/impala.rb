@@ -563,23 +563,6 @@ module Sequel
         sql
       end
 
-      # Before running the query, check if there are any semi_join_first temporary
-      # tables to create, and if so, create them before the query and remove them
-      # after the query.
-      def each
-        tables = {}
-        populate_semi_join_first_tables(self, tables)
-        tables.each do |temp_table, ds|
-          db.create_table(temp_table, :as=>ds)
-        end
-
-        super 
-      ensure
-        if tables
-          db.drop_table(*tables.map(&:first))
-        end
-      end
-
       # Implicitly qualify tables if using the :search_path database option.
       def from(*)
         ds = super
@@ -599,30 +582,7 @@ module Sequel
       # Handle the :hints option to specify join hints, such as :broadcast,
       # :shuffle, or an array containing both. Use of a join hint automatically
       # forces the use of the STRAIGHT_JOIN in the query.
-      #
-      # Also support the :semi_join_first option if the type is :inner.  In that
-      # case, if :semi_join_first is true, first perform a left semi join instead of
-      # an inner join in a subquery, and then inner join that subquery to the table.
-      # If :semi_join_first represents a table name, inner join to the table name,
-      # and when executing the query, first create the table name using a left
-      # semi join, and after executing the query, drop the table name.
       def join_table(type, table, expr=nil, options=OPTS, &block)
-        if type == :inner && (temp_table = options[:semi_join_first])
-          ds = left_semi_join(table, expr, options, &block)
-          alias_name = alias_symbol(opts[:from].first)
-
-          ds = case temp_table
-          when Symbol, String, SQL::Identifier, SQL::QualifiedIdentifier
-            db.from(Sequel.as(temp_table, alias_name)).clone(:semi_join_first_tables=>(opts[:semi_join_first_tables] || []) + [[temp_table, ds]])
-          when true
-            ds.from_self(:alias=>alias_name)
-          else
-            raise Sequel::Error, "invalid :semi_join_first option value when joining: #{temp_table.inspect}"
-          end
-
-          return ds.join(table, expr, options.merge(semi_join_first: nil))
-        end
-
         ds = super(type, db.implicit_qualify(table), expr, options, &block)
 
         if join_hints = options[:hints]
@@ -919,30 +879,11 @@ module Sequel
         super
       end
 
+
       # Support VALUES clause instead of the SELECT clause to return rows.
       def select_values_sql(sql)
         sql << SELECT_VALUES
         expression_list_append(sql, opts[:values])
-      end
-
-      # Look in the current query and any subqueries in the FROM or JOIN
-      # clauses (including nested subqueries) to find all semi_join_first
-      # tables to create.
-      def populate_semi_join_first_tables(object, tables)
-        case object
-        when Sequel::Dataset
-          descend_into = (object.opts[:from] || []) + (object.opts[:join] || [])
-          descend_into.each{|f| populate_semi_join_first_tables(f, tables)}
-          if sjf = object.opts[:semi_join_first_tables]
-            sjf.each do |temp_table, ds|
-              tables[temp_table] ||= ds
-            end
-          end
-        when Sequel::SQL::AliasedExpression
-          populate_semi_join_first_tables(object.expression, tables)
-        when Sequel::SQL::JoinClause
-          populate_semi_join_first_tables(object.table_expr, tables)
-        end
       end
     end
   end
